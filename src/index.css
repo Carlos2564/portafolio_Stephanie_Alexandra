@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+/* Esta es la nueva forma de importar Tailwind en la v4 */
+@import "tailwindcss";
+
+/* Aquí configuramos nuestros colores personalizados para el portafolio */
+@theme {
+  --color-dark-bg: #0a0a0a;
+  --color-light-bg: #f8fafc;
+  --color-brand-primary: #4f46e5;
+  --color-brand-accent: #06b6d4;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-dark-bg);
+  color: #f1f5f9;
+  overflow-x: hidden;
+}
