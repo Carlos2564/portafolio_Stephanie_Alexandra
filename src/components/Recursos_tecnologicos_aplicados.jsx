@@ -2,370 +2,412 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Laptop,
-  MonitorSmartphone,
+  GraduationCap,
   FileText,
   PlayCircle,
-  Palette,
-  Gamepad2,
   Video,
   MessageCircle,
-  Building2,
+  Palette,
+  Gamepad2,
+  MonitorCog,
+  Wifi,
+  WifiOff,
+  School,
+  LayoutGrid,
+  Table2,
+  Cpu,
+  Presentation,
+  BookOpenText,
   Layers,
-  BookOpen,
-  PenTool,
-  Trophy,
-  Radio,
-  Atom,
   ArrowUpRight,
-  Accessibility,
-  Check,
-  Minus,
-  ChartBar,
   CircleCheck,
+  Lightbulb,
+  Info,
 } from 'lucide-react';
-import { PageShell, GlassCard, SectionHeader, Badge, SearchInput, FilterChips, Modal, HorizontalBars, EmptyState, Divider } from './ui/Primitives';
-import { cx, normalize, fadeUp, stagger } from './ui/tokens';
+import {
+  PageShell,
+  GlassCard,
+  SectionHeader,
+  Badge,
+  SearchInput,
+  FilterChips,
+  SegmentedControl,
+  EmptyState,
+  DataTable,
+  Modal,
+  StatCard,
+} from './ui/Primitives';
+import { cx, tone, normalize, fadeUp, stagger } from './ui/tokens';
 
 /* =====================================================================
-   RECURSOS TECNOLÓGICOS APLICADOS · Catálogo TPACK
+   RECURSOS TECNOLÓGICOS APLICADOS · Catálogo interactivo TPACK
    ===================================================================== */
 
 const CATEGORIES = {
-  plataformas: { label: 'Plataformas EVA', icon: MonitorSmartphone },
-  contenidos: { label: 'Contenidos', icon: BookOpen },
-  creacion: { label: 'Creación', icon: PenTool },
-  gamificacion: { label: 'Gamificación', icon: Trophy },
-  comunicacion: { label: 'Comunicación', icon: Radio },
-  infraestructura: { label: 'Infraestructura', icon: Building2 },
+  plataforma: { label: 'Plataformas', icon: Laptop, toneName: 'violet' },
+  contenido: { label: 'Contenidos', icon: BookOpenText, toneName: 'amber' },
+  comunicacion: { label: 'Comunicación', icon: MessageCircle, toneName: 'emerald' },
+  creacion: { label: 'Creación', icon: Palette, toneName: 'rose' },
+  gamificacion: { label: 'Gamificación', icon: Gamepad2, toneName: 'indigo' },
+  infraestructura: { label: 'Infraestructura', icon: School, toneName: 'slate' },
 };
 
-const STATUS = {
-  institucion: { label: 'En uso en la institución', toneName: 'emerald' },
-  propuesta: { label: 'Integrado en la propuesta', toneName: 'violet' },
-  propuesto: { label: 'Propuesto', toneName: 'amber' },
-};
-
-const MOMENTS = {
-  antes: { label: 'Antes', hint: 'En casa, antes de la tutoría' },
-  durante: { label: 'Durante', hint: 'Tutoría sabatina' },
-  despues: { label: 'Después', hint: 'Seguimiento entre semana' },
+const ACCESS = {
+  online: { label: 'Requiere conexión', icon: Wifi, toneName: 'indigo' },
+  offline: { label: 'Funciona sin conexión', icon: WifiOff, toneName: 'emerald' },
+  mixto: { label: 'En línea y sin conexión', icon: Layers, toneName: 'amber' },
+  sede: { label: 'En la institución', icon: School, toneName: 'slate' },
 };
 
 const RESOURCES = [
   {
-    id: 'eva',
-    name: 'Google Classroom y Moodle',
-    icon: MonitorSmartphone,
-    category: 'plataformas',
-    status: 'institucion',
-    metric: { value: 90.9, display: '90.9%', label: 'de los estudiantes recurre a estas plataformas para revisar sus materias', source: 'Encuesta · P12' },
-    summary: 'Entorno virtual principal para distribuir los módulos, publicar las cápsulas y recibir las actividades exaula.',
-    application:
-      'Se utilizan para publicar los materiales del “Antes” de cada lección de Ciencias Naturales, entregar las actividades del final de cada lección y devolver retroalimentación escrita.',
+    id: 'classroom',
+    name: 'Google Classroom / Moodle',
+    icon: GraduationCap,
+    category: 'plataforma',
+    access: 'online',
+    metric: '90.9%',
+    metricLabel: 'de los estudiantes recurre a estas plataformas para revisar sus materias',
+    status: 'En uso',
     tpack: {
-      C: 'Organización del módulo por lecciones y temas científicos.',
-      P: 'Secuencia del aula invertida y seguimiento del trabajo autónomo.',
-      T: 'Aplicación móvil, notificaciones y entrega de archivos.',
+      T: 'Entorno virtual para publicar materiales, recibir tareas y dar seguimiento.',
+      P: 'Sostiene el aula invertida: el material se revisa en la semana y se trabaja en la tutoría del sábado.',
+      C: 'Entrega del afiche informativo sobre un Área Natural Protegida de El Salvador.',
     },
-    access: 'Disponible como aplicación móvil y en el navegador; los archivos pueden descargarse para estudiar sin conexión.',
-    moments: ['antes', 'despues'],
+    practice: 'Expliqué las indicaciones y criterios de la actividad ex-aula (afiche informativo) para su entrega en Google Classroom.',
   },
   {
     id: 'pdf',
-    name: 'Módulos digitales e impresos en PDF',
+    name: 'Módulos PDF',
     icon: FileText,
-    category: 'contenidos',
-    status: 'institucion',
-    metric: { value: 45.5, display: '45.5%', label: 'usa lecturas o archivos PDF para revisar sus materias', source: 'Encuesta · P12' },
-    summary: 'Material base de cada asignatura, entregado en formato impreso y digital.',
-    application:
-      'Sostienen la lectura activa de los contenidos científicos y permiten estudiar sin consumir datos una vez descargados, una alternativa clave para quienes tienen conexión inestable.',
+    category: 'contenido',
+    access: 'offline',
+    metric: '45.5%',
+    metricLabel: 'recurre a lecturas o archivos PDF',
+    status: 'En uso',
     tpack: {
-      C: 'Contenidos oficiales de Ciencias Naturales y Tecnología.',
-      P: 'Lectura activa: subrayado, notas y resúmenes.',
-      T: 'Archivos ligeros, descargables e imprimibles.',
+      T: 'Archivo ligero y descargable que se consulta sin conexión.',
+      P: 'Lectura previa y actividades no presenciales para el trabajo autónomo en casa.',
+      C: 'Lecturas del módulo de Ciencias Naturales asignadas en cada plan de sesión.',
     },
-    access: 'Funcionan sin conexión y en cualquier dispositivo; la versión impresa elimina la barrera tecnológica.',
-    moments: ['antes', 'despues'],
+    practice: 'Incluí en los planes de sesión actividades no presenciales basadas en la lectura del módulo.',
   },
   {
     id: 'videos',
-    name: 'Videos explicativos y simulaciones interactivas',
+    name: 'Videos y simulaciones',
     icon: PlayCircle,
-    category: 'contenidos',
-    status: 'propuesta',
-    metric: { value: 45.5, display: '45.5%', label: 'señala que los videos explicativos le ayudan a entender mejor los temas', source: 'Encuesta · P6' },
-    summary: 'Primer contacto visual con los conceptos y experimentos en el modelo de aula invertida.',
-    application:
-      'Cápsulas breves para visualizar conceptos y experimentos científicos antes de la tutoría, y simulaciones interactivas para observar fenómenos difíciles de reproducir en el aula.',
+    category: 'contenido',
+    access: 'online',
+    metric: '45.5%',
+    metricLabel: 'considera que los videos explicativos le ayudan a entender mejor',
+    status: 'Preferencia del grupo',
     tpack: {
-      C: 'Fenómenos físicos, químicos y biológicos observables.',
-      P: 'Aprendizaje visual y a ritmo propio (pausar y repetir).',
-      T: 'Videos cortos y simulaciones que funcionan en el navegador.',
+      T: 'Recurso audiovisual para observar procesos y fenómenos.',
+      P: 'Aprendizaje multimodal que reduce la dependencia de textos extensos.',
+      C: 'Procesos de la Unidad 4, como la fotosíntesis o la división celular.',
     },
-    access: 'Cápsulas de 5 a 8 minutos y en baja resolución para reducir el consumo de datos.',
-    moments: ['antes', 'durante'],
-  },
-  {
-    id: 'canva',
-    name: 'Canva y Genially',
-    icon: Palette,
-    category: 'creacion',
-    status: 'propuesta',
-    metric: null,
-    summary: 'Herramientas de creación visual para que el estudiantado produzca y no solo consuma contenidos.',
-    application:
-      'Elaboración de infografías científicas, presentaciones interactivas y mapas mentales como productos de aprendizaje y como apoyo visual ante las dificultades de lectoescritura.',
-    tpack: {
-      C: 'Síntesis de conceptos y procesos científicos.',
-      P: 'Aprendizaje por producto y organización visual de ideas.',
-      T: 'Plantillas editables desde el celular o la computadora.',
-    },
-    access: 'Versiones gratuitas y plantillas que reducen la dificultad de diseño.',
-    moments: ['despues'],
-  },
-  {
-    id: 'kahoot',
-    name: 'Kahoot! y Quizizz',
-    icon: Gamepad2,
-    category: 'gamificacion',
-    status: 'propuesta',
-    metric: { value: 45.5, display: '45.5%', label: 'prefiere dinámicas o juegos interactivos para aprender', source: 'Encuesta · P6' },
-    summary: 'Evaluación formativa gamificada para el cierre de cada tutoría.',
-    application:
-      'Cuestionarios en vivo al final de la tutoría sabatina para comprobar la comprensión, y en modo tarea para quienes no pudieron asistir.',
-    tpack: {
-      C: 'Preguntas sobre los conceptos clave de la lección.',
-      P: 'Evaluación formativa con retroalimentación inmediata.',
-      T: 'Participación desde el celular con un código.',
-    },
-    access: 'Se juega desde el navegador del celular; Quizizz permite responder a tu ritmo y sin presión de tiempo.',
-    moments: ['durante', 'despues'],
+    practice: 'Lo considero un apoyo visual que debe combinarse con materiales descargables por la conectividad del grupo.',
   },
   {
     id: 'meet',
     name: 'Google Meet',
     icon: Video,
     category: 'comunicacion',
-    status: 'propuesto',
-    metric: { value: 0, display: '0%', label: 'usa actualmente videollamadas para estudiar', source: 'Encuesta · P12' },
-    summary: 'Propuesto por el docente tutor para reforzar entre semana, fuera del horario sabatino.',
-    application: 'Sesiones opcionales de refuerzo de 30 a 40 minutos entre semana, grabadas para quienes no puedan conectarse en el horario acordado.',
+    access: 'online',
+    metric: '0%',
+    metricLabel: 'usa actualmente clases o reuniones por videollamada',
+    status: 'Refuerzo propuesto',
     tpack: {
-      C: 'Temas con mayor dificultad detectada en la tutoría.',
-      P: 'Acompañamiento síncrono y resolución de dudas.',
-      T: 'Videollamada desde el celular con la cuenta institucional.',
+      T: 'Videollamadas para sesiones sincrónicas fuera del sábado.',
+      P: 'Refuerzo en horarios que no son de clase, sugerido por el docente tutor.',
+      C: 'Aclaración de dudas sobre los contenidos de la semana.',
     },
-    access: 'Asistencia voluntaria y grabación como alternativa ante conexión limitada.',
-    moments: ['despues'],
+    practice: 'Recojo la recomendación del docente tutor de utilizar Meet para reforzar el aprendizaje del fin de semana.',
   },
   {
     id: 'whatsapp',
-    name: 'WhatsApp académico',
+    name: 'WhatsApp',
     icon: MessageCircle,
     category: 'comunicacion',
-    status: 'institucion',
-    metric: null,
-    summary: 'Canal directo de comunicación con el docente durante la semana.',
-    application: 'Resolución de dudas entre semana, avisos de publicación de materiales y recordatorios de fechas de entrega.',
+    access: 'online',
+    metric: 'Semanal',
+    metricLabel: 'canal de consultas entre semana con el docente',
+    status: 'En uso',
     tpack: {
-      C: 'Dudas puntuales sobre actividades y contenidos.',
-      P: 'Acompañamiento cercano y comunicación oportuna.',
-      T: 'Aplicación ya conocida y usada por todo el grupo.',
+      T: 'Mensajería móvil de bajo consumo de datos.',
+      P: 'Acompañamiento asincrónico durante la semana.',
+      C: 'Consultas sobre tareas y orientaciones de la tutoría.',
     },
-    access: 'Consumo de datos muy bajo; funciona en cualquier smartphone.',
-    moments: ['antes', 'despues'],
+    practice: 'Es el canal institucional de comunicación semanal de la modalidad flexible.',
   },
   {
-    id: 'lab',
-    name: 'Laboratorio de informática y equipo audiovisual',
-    icon: Building2,
-    category: 'infraestructura',
-    status: 'institucion',
-    metric: { value: null, display: '30 PC', label: '6 + 1 proyectores, bocinas y red del MINED', source: 'Entrevista al coordinador' },
-    summary: 'Infraestructura institucional disponible durante la jornada sabatina.',
-    application:
-      'Talleres exprés de alfabetización digital, proyección de cápsulas y simulaciones, y prácticas guiadas con documentos y presentaciones.',
+    id: 'creacion',
+    name: 'Canva / Genially / Word / PowerPoint',
+    icon: Palette,
+    category: 'creacion',
+    access: 'mixto',
+    metric: 'Alfabetización',
+    metricLabel: 'digital mediante la creación de productos',
+    status: 'En uso',
     tpack: {
-      C: 'Demostraciones y prácticas de Ciencias Naturales.',
-      P: 'Práctica guiada y trabajo en equipo.',
-      T: 'Computadoras, proyectores, audio e Internet institucional.',
+      T: 'Herramientas de diseño y ofimática para producir recursos propios.',
+      P: 'Aprender haciendo: afiches, resúmenes y presentaciones.',
+      C: 'Afiche informativo de un Área Natural Protegida; la Guía de Micro aprendizajes fue elaborada en Canva.',
     },
-    access: 'Compensa la falta de computadora en el hogar; requiere actualización de software y planificar su uso compartido.',
-    moments: ['durante'],
+    practice: 'Diseñé el recurso digital de la propuesta en Canva y propuse elaborar el portafolio de clases en Word o Canva.',
+  },
+  {
+    id: 'juegos',
+    name: 'Kahoot / Quizizz',
+    icon: Gamepad2,
+    category: 'gamificacion',
+    access: 'online',
+    metric: '45.5%',
+    metricLabel: 'prefiere dinámicas o juegos interactivos',
+    status: 'Preferencia del grupo',
+    tpack: {
+      T: 'Cuestionarios interactivos en tiempo real.',
+      P: 'Evaluación formativa lúdica que abre otras formas de participar.',
+      C: 'Repaso de conceptos como selección natural, célula, mitosis y meiosis.',
+    },
+    practice: 'Su uso se plantea dentro de la institución, donde la conexión está disponible.',
+  },
+  {
+    id: 'computo',
+    name: 'Centro de Cómputo',
+    icon: MonitorCog,
+    category: 'infraestructura',
+    access: 'sede',
+    metric: '30 PCs',
+    metricLabel: 'con 6 proyectores compartidos, 1 fijo y red MINED',
+    status: 'Disponible',
+    tpack: {
+      T: 'Laboratorio de informática, proyectores y red del MINED.',
+      P: 'Sesiones prácticas de alfabetización digital durante la tutoría del sábado.',
+      C: 'Práctica de procesadores de texto y envío de tareas.',
+    },
+    practice: 'Utilicé presentación digital y proyector en la clase sobre Áreas Naturales Protegidas.',
   },
 ];
 
-const TPACK_LABELS = { C: 'Contenido', P: 'Pedagogía', T: 'Tecnología' };
+const TPACK_ZONES = [
+  { id: 'T', label: 'Conocimiento tecnológico', short: 'T', cx: 100, cy: 92, color: '#4A2574', text: 'Qué hace la herramienta y qué condiciones de acceso exige.' },
+  { id: 'P', label: 'Conocimiento pedagógico', short: 'P', cx: 66, cy: 150, color: '#B08A4F', text: 'Qué estrategia de enseñanza favorece la herramienta.' },
+  { id: 'C', label: 'Conocimiento del contenido', short: 'C', cx: 134, cy: 150, color: '#5E8C76', text: 'Qué contenido de Ciencias Naturales se trabaja con ella.' },
+];
+
+const TABLE_COLUMNS = [
+  {
+    key: 'name',
+    label: 'Recurso',
+    className: 'w-[24%]',
+    render: (r) => {
+      const RIcon = r.icon;
+      return (
+        <span className="flex items-center gap-2.5 font-semibold text-ink">
+          <RIcon size={17} className="shrink-0 text-plum" /> {r.name}
+        </span>
+      );
+    },
+  },
+  { key: 'category', label: 'Categoría', className: 'w-[14%]', render: (r) => <Badge toneName={CATEGORIES[r.category].toneName}>{CATEGORIES[r.category].label}</Badge> },
+  {
+    key: 'metric',
+    label: 'Dato del diagnóstico',
+    className: 'w-[24%]',
+    render: (r) => (
+      <span>
+        <span className="font-semibold text-plum">{r.metric}</span> <span className="text-muted">{r.metricLabel}</span>
+      </span>
+    ),
+  },
+  { key: 'access', label: 'Conectividad', className: 'w-[16%]', render: (r) => <Badge toneName={ACCESS[r.access].toneName} icon={ACCESS[r.access].icon}>{ACCESS[r.access].label}</Badge> },
+  { key: 'practice', label: 'Uso en la práctica' },
+];
 
 /* ---------------------------------------------------------------------
    Sub-componentes
    --------------------------------------------------------------------- */
 
-function ResourceCard({ item, onOpen }) {
-  const Icon = item.icon;
-  const status = STATUS[item.status];
+function TpackDiagram({ focus, onFocus }) {
   return (
-    <motion.article variants={fadeUp} layout className="h-full">
-      <button
-        type="button"
-        onClick={() => onOpen(item)}
-        className="group h-full w-full text-left rounded-3xl border border-line bg-white shadow-paper hover:shadow-paper-lg hover:border-line-strong transition-all flex flex-col overflow-hidden"
-      >
-        <div className="p-5 sm:p-6 flex-1 flex flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum group-hover:bg-plum group-hover:text-white transition-colors">
-              <Icon size={22} />
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+      <div className="md:col-span-5">
+        <svg viewBox="0 0 200 220" className="w-full max-w-[300px] mx-auto" role="img" aria-label="Diagrama del modelo TPACK">
+          {TPACK_ZONES.map((z) => (
+            <motion.circle
+              key={z.id}
+              cx={z.cx}
+              cy={z.cy}
+              r={58}
+              fill={z.color}
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: focus && focus !== z.id ? 0.08 : 0.2, scale: 1 }}
+              animate={{ opacity: focus && focus !== z.id ? 0.08 : 0.2 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              stroke={z.color}
+              strokeWidth={focus === z.id ? 2.5 : 1}
+              style={{ cursor: 'pointer', transformOrigin: `${z.cx}px ${z.cy}px` }}
+              onClick={() => onFocus(focus === z.id ? null : z.id)}
+            />
+          ))}
+          {TPACK_ZONES.map((z) => (
+            <text
+              key={`t-${z.id}`}
+              x={z.id === 'T' ? z.cx : z.id === 'P' ? z.cx - 22 : z.cx + 22}
+              y={z.id === 'T' ? z.cy - 22 : z.cy + 22}
+              textAnchor="middle"
+              className="font-serif"
+              fontSize="20"
+              fontWeight="600"
+              fill={z.color}
+              style={{ pointerEvents: 'none' }}
+            >
+              {z.short}
+            </text>
+          ))}
+          <circle
+            cx={100}
+            cy={131}
+            r={15}
+            fill="#2E1A47"
+            style={{ cursor: 'pointer' }}
+            onClick={() => onFocus(focus === 'TPACK' ? null : 'TPACK')}
+            stroke={focus === 'TPACK' ? '#B08A4F' : 'none'}
+            strokeWidth={2.5}
+          />
+          <text x={100} y={134.5} textAnchor="middle" fontSize="7.5" fontWeight="700" fill="#F9F6FC" style={{ pointerEvents: 'none' }}>
+            TPACK
+          </text>
+        </svg>
+      </div>
+      <div className="md:col-span-7 space-y-3">
+        {TPACK_ZONES.map((z) => (
+          <button
+            key={z.id}
+            type="button"
+            onClick={() => onFocus(focus === z.id ? null : z.id)}
+            aria-pressed={focus === z.id}
+            className={cx(
+              'w-full flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-all',
+              focus === z.id ? 'border-plum bg-lilac shadow-paper' : 'border-line bg-white hover:border-line-strong'
+            )}
+          >
+            <span className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg font-serif text-lg font-semibold text-white" style={{ background: z.color }}>
+              {z.short}
             </span>
-            <Badge toneName={status.toneName}>{status.label}</Badge>
-          </div>
-          <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">{CATEGORIES[item.category].label}</p>
-          <h3 className="mt-1 font-serif text-2xl font-semibold text-ink leading-tight">{item.name}</h3>
-          <p className="mt-2 text-sm text-body leading-relaxed flex-1">{item.summary}</p>
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {item.moments.map((m) => (
-              <span key={m} className="rounded-full border border-line bg-ivory px-2.5 py-0.5 text-[11px] font-semibold text-plum">
-                {MOMENTS[m].label}
-              </span>
-            ))}
-          </div>
+            <span>
+              <span className="block text-sm font-semibold text-ink">{z.label}</span>
+              <span className="block text-xs text-muted leading-snug mt-0.5">{z.text}</span>
+            </span>
+          </button>
+        ))}
+        <div className={cx('rounded-2xl border px-4 py-3 transition-all', focus === 'TPACK' ? 'border-bronze bg-sand' : 'border-sand-line bg-sand/60')}>
+          <p className="text-sm text-body leading-relaxed">
+            <span className="font-semibold text-bronze-dark">Integración TPACK: </span>
+            selecciono cada tecnología a partir de lo que el contenido exige y de la estrategia pedagógica que mejor lo media.
+          </p>
         </div>
-        <div className="border-t border-line bg-ivory px-5 sm:px-6 py-4">
-          {item.metric ? (
-            <div className="flex items-center gap-3">
-              <span className="font-serif text-3xl font-semibold text-plum leading-none tabular-nums">{item.metric.display}</span>
-              <span className="text-xs text-body leading-snug">{item.metric.label}</span>
-            </div>
-          ) : (
-            <span className="text-xs text-muted">Recurso de apoyo sin indicador cuantitativo en el diagnóstico</span>
-          )}
-          <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-plum">
-            Ver aplicación TPACK <ArrowUpRight size={14} />
-          </span>
-        </div>
-      </button>
-    </motion.article>
+      </div>
+    </div>
   );
 }
 
-function ResourceDetail({ item }) {
-  if (!item) return null;
+function ResourceCard({ r, focus, onOpen }) {
+  const RIcon = r.icon;
+  const cat = CATEGORIES[r.category];
+  const t = tone(cat.toneName);
+  const access = ACCESS[r.access];
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
-        <Badge toneName={STATUS[item.status].toneName}>{STATUS[item.status].label}</Badge>
-        <Badge toneName="slate">{CATEGORIES[item.category].label}</Badge>
+    <motion.button
+      layout
+      type="button"
+      onClick={() => onOpen(r.id)}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.3 }}
+      className="group h-full text-left rounded-3xl border border-line bg-white shadow-paper hover:shadow-paper-lg hover:border-line-strong transition-all overflow-hidden flex flex-col"
+    >
+      <div className={cx('h-1 w-full', t.fill)} />
+      <div className="p-5 flex-1 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <span className={cx('inline-flex h-12 w-12 items-center justify-center rounded-2xl border', t.bg, t.border, t.text)}>
+            <RIcon size={22} />
+          </span>
+          <Badge toneName={r.status === 'Refuerzo propuesto' ? 'amber' : r.status === 'Preferencia del grupo' ? 'violet' : 'emerald'}>{r.status}</Badge>
+        </div>
+        <div>
+          <p className="font-semibold text-ink leading-snug">{r.name}</p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted font-semibold">{cat.label}</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-ivory p-3.5">
+          <span className="font-serif text-2xl font-semibold text-plum leading-none">{r.metric}</span>
+          <p className="mt-1 text-xs text-muted leading-snug">{r.metricLabel}</p>
+        </div>
+        {focus && focus !== 'TPACK' ? (
+          <p className="text-sm text-body leading-relaxed">
+            <span className="font-semibold text-ink">{focus}: </span>
+            {r.tpack[focus]}
+          </p>
+        ) : (
+          <p className="text-sm text-body leading-relaxed line-clamp-3">{r.practice}</p>
+        )}
+        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+          <Badge toneName={access.toneName} icon={access.icon}>
+            {access.label}
+          </Badge>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-plum">
+            Ver TPACK <ArrowUpRight size={14} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </span>
+        </div>
       </div>
-      {item.metric && (
-        <div className="rounded-2xl border border-sand-line bg-sand p-4 flex items-center gap-4">
-          <span className="font-serif text-4xl font-semibold text-bronze-dark leading-none">{item.metric.display}</span>
-          <div>
-            <p className="text-sm text-ink leading-snug">{item.metric.label}</p>
-            <p className="text-xs text-muted mt-0.5">{item.metric.source}</p>
+    </motion.button>
+  );
+}
+
+function ResourceModal({ resource, open, onClose }) {
+  if (!resource) return null;
+  const cat = CATEGORIES[resource.category];
+  const access = ACCESS[resource.access];
+  return (
+    <Modal open={open} onClose={onClose} title={resource.name} subtitle={`${cat.label} · ${resource.status}`} icon={resource.icon} size="lg">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-line bg-ivory p-4">
+            <span className="font-serif text-3xl font-semibold text-plum leading-none">{resource.metric}</span>
+            <p className="mt-1.5 text-sm text-muted">{resource.metricLabel}</p>
+          </div>
+          <div className="rounded-2xl border border-line bg-ivory p-4 flex flex-col justify-center gap-2">
+            <Badge toneName={access.toneName} icon={access.icon} className="self-start">
+              {access.label}
+            </Badge>
+            <Badge toneName={cat.toneName} icon={cat.icon} className="self-start">
+              {cat.label}
+            </Badge>
           </div>
         </div>
-      )}
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-2">Aplicación en Ciencias Naturales</p>
-        <p className="text-[15px] text-body leading-relaxed">{item.application}</p>
-      </div>
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-3 flex items-center gap-2">
-          <Atom size={14} /> Lectura TPACK
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {Object.entries(item.tpack).map(([k, v]) => (
-            <div key={k} className="rounded-2xl border border-lilac-line bg-lilac p-4">
-              <span className="font-serif text-2xl font-semibold text-plum leading-none">{k}</span>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-plum font-semibold mt-1">{TPACK_LABELS[k]}</p>
-              <p className="text-sm text-ink leading-relaxed mt-2">{v}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {TPACK_ZONES.map((z) => (
+            <div key={z.id} className="rounded-2xl border border-line bg-white p-4">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg font-serif text-lg font-semibold text-white" style={{ background: z.color }}>
+                {z.short}
+              </span>
+              <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted font-semibold">{z.label}</p>
+              <p className="mt-1 text-sm text-body leading-relaxed">{resource.tpack[z.id]}</p>
             </div>
           ))}
         </div>
-      </div>
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-2">Momento del aula invertida</p>
-        <div className="grid grid-cols-3 gap-2">
-          {Object.entries(MOMENTS).map(([k, m]) => {
-            const on = item.moments.includes(k);
-            return (
-              <div key={k} className={cx('rounded-xl border p-3 text-center', on ? 'border-plum bg-plum text-white' : 'border-line bg-ivory text-muted')}>
-                <p className="text-sm font-semibold">{m.label}</p>
-                <p className={cx('text-[11px] leading-tight mt-0.5', on ? 'text-on-plum-muted' : 'text-muted')}>{m.hint}</p>
-              </div>
-            );
-          })}
+        <div className="flex items-start gap-3 rounded-2xl border border-sage-line bg-sage-soft p-4">
+          <CircleCheck size={18} className="shrink-0 mt-0.5 text-sage" />
+          <p className="text-sm text-body leading-relaxed">
+            <span className="font-semibold text-ink">Uso en la práctica: </span>
+            {resource.practice}
+          </p>
         </div>
       </div>
-      <div className="rounded-2xl border border-sage-line bg-sage-soft p-4 flex gap-3">
-        <Accessibility size={18} className="shrink-0 mt-0.5 text-sage" />
-        <p className="text-sm text-ink leading-relaxed">{item.access}</p>
-      </div>
-    </div>
-  );
-}
-
-function MomentsMatrix() {
-  return (
-    <div>
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {RESOURCES.map((r) => (
-          <div key={r.id} className="rounded-2xl border border-line bg-white shadow-paper p-4">
-            <p className="font-semibold text-ink">{r.name}</p>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {Object.entries(MOMENTS).map(([k, m]) => {
-                const on = r.moments.includes(k);
-                return (
-                  <span key={k} className={cx('rounded-lg border px-2 py-1.5 text-center text-xs font-semibold', on ? 'border-plum bg-plum text-white' : 'border-line bg-ivory text-muted')}>
-                    {m.label}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="hidden md:block overflow-x-auto rounded-3xl border border-line bg-white shadow-paper">
-        <table className="w-full min-w-[680px] text-sm">
-          <thead>
-            <tr className="bg-silk text-[11px] uppercase tracking-[0.14em] text-muted">
-              <th className="px-5 py-3.5 text-left font-semibold">Recurso</th>
-              {Object.entries(MOMENTS).map(([k, m]) => (
-                <th key={k} className="px-4 py-3.5 text-center font-semibold w-36">
-                  {m.label}
-                  <span className="block normal-case tracking-normal font-normal text-[11px] text-muted">{m.hint}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {RESOURCES.map((r) => {
-              const Icon = r.icon;
-              return (
-                <tr key={r.id} className="border-t border-line hover:bg-ivory transition-colors">
-                  <td className="px-5 py-3.5">
-                    <span className="inline-flex items-center gap-2.5 font-medium text-ink">
-                      <Icon size={16} className="text-plum" /> {r.name}
-                    </span>
-                  </td>
-                  {Object.keys(MOMENTS).map((k) => (
-                    <td key={k} className="px-4 py-3.5 text-center">
-                      {r.moments.includes(k) ? (
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-plum text-white">
-                          <Check size={15} />
-                        </span>
-                      ) : (
-                        <Minus size={15} className="inline text-line-strong" />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -374,108 +416,138 @@ function MomentsMatrix() {
    --------------------------------------------------------------------- */
 
 export default function Recursos_tecnologicos_aplicados() {
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState('todos');
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState(null);
-  const q = normalize(query.trim());
+  const [view, setView] = useState('tarjetas');
+  const [focus, setFocus] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const openResource = (id) => {
+    setOpenId(id);
+    setModalOpen(true);
+  };
 
-  const filtered = useMemo(
-    () =>
-      RESOURCES.filter(
-        (r) =>
-          (category === 'all' || r.category === category) &&
-          (!q || normalize([r.name, r.summary, r.application, ...Object.values(r.tpack)].join(' ')).includes(q))
-      ),
-    [category, q]
-  );
+  const rows = useMemo(() => {
+    const q = normalize(query.trim());
+    return RESOURCES.filter(
+      (r) =>
+        (category === 'todos' || r.category === category) &&
+        (!q || normalize(`${r.name} ${CATEGORIES[r.category].label} ${r.practice} ${Object.values(r.tpack).join(' ')}`).includes(q))
+    );
+  }, [category, query]);
 
   const options = [
-    { id: 'all', label: 'Todos', icon: Layers, count: RESOURCES.length },
+    { id: 'todos', label: 'Todos', icon: LayoutGrid, count: RESOURCES.length },
     ...Object.entries(CATEGORIES).map(([id, c]) => ({ id, label: c.label, icon: c.icon, count: RESOURCES.filter((r) => r.category === id).length })),
   ];
-
-  const chartData = RESOURCES.filter((r) => r.metric && typeof r.metric.value === 'number').map((r) => ({
-    label: r.name,
-    value: r.metric.source.replace('Encuesta · ', ''),
-    percent: r.metric.value,
-  }));
-
-  const statusCounts = Object.keys(STATUS).map((k) => ({ id: k, ...STATUS[k], count: RESOURCES.filter((r) => r.status === k).length }));
+  const opened = RESOURCES.find((r) => r.id === openId) || null;
+  const offlineCount = RESOURCES.filter((r) => r.access === 'offline' || r.access === 'mixto').length;
 
   return (
     <PageShell>
       <SectionHeader
-        eyebrow="Apartado 12 · Recursos tecnológicos"
-        icon={Laptop}
-        title="Catálogo"
-        highlight="TPACK"
-        description="Herramientas digitales e infraestructura que sostienen el proceso de enseñanza-aprendizaje de Ciencias Naturales, con los indicadores reales del diagnóstico y su lectura desde el modelo TPACK."
+        eyebrow="Recursos tecnológicos"
+        icon={Cpu}
+        title="Recursos tecnológicos"
+        highlight="aplicados"
+        description="Catálogo de las herramientas que integré o recomendé durante la práctica, analizadas con el modelo TPACK y vinculadas a los datos del diagnóstico."
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <GlassCard hover={false} className="lg:col-span-7">
-          <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-5">
-            <ChartBar size={14} /> Adopción y preferencia estudiantil
-          </p>
-          <HorizontalBars data={chartData} max={100} />
-          <p className="mt-4 text-xs text-muted">Porcentajes sobre N = 11 estudiantes. El número junto a cada barra indica la pregunta de la encuesta.</p>
-        </GlassCard>
-        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
-          {statusCounts.map((s) => (
-            <div key={s.id} className="rounded-3xl border border-line bg-white shadow-paper p-5 flex items-center gap-4">
-              <span className="font-serif text-5xl font-semibold text-plum leading-none">{s.count}</span>
-              <div>
-                <Badge toneName={s.toneName}>{s.label}</Badge>
-                <p className="text-xs text-muted mt-1.5">de {RESOURCES.length} recursos del catálogo</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <motion.div variants={fadeUp}>
+          <StatCard icon={Layers} label="Recursos" value={String(RESOURCES.length)} hint="En el catálogo TPACK" className="h-full" />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <StatCard icon={GraduationCap} label="Uso de EVA" value="90.9%" hint="Classroom o Moodle" toneName="emerald" className="h-full" />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <StatCard icon={WifiOff} label="Sin conexión" value={String(offlineCount)} hint="Recursos utilizables offline" toneName="amber" className="h-full" />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <StatCard icon={Presentation} label="Centro de cómputo" value="30" hint="Computadoras institucionales" toneName="indigo" className="h-full" />
+        </motion.div>
+      </motion.div>
 
-      <Divider />
+      <GlassCard hover={false}>
+        <div className="flex items-center gap-2 mb-5">
+          <Lightbulb size={18} className="text-bronze" />
+          <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">Lente de análisis · selecciono un conocimiento</p>
+        </div>
+        <TpackDiagram focus={focus} onFocus={setFocus} />
+      </GlassCard>
 
       <section className="space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div>
-            <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Explorar el catálogo</h3>
-            <p className="text-sm text-muted mt-1">
-              <span className="font-semibold text-plum tabular-nums">{filtered.length}</span> recursos · selecciona uno para ver su aplicación
-            </p>
-          </div>
-          <SearchInput value={query} onChange={setQuery} placeholder="Buscar herramienta o uso..." className="lg:max-w-sm" />
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between">
+          <FilterChips options={options} value={category} onChange={setCategory} />
+          <SegmentedControl
+            ariaLabel="Tipo de vista"
+            value={view}
+            onChange={setView}
+            options={[
+              { id: 'tarjetas', label: 'Tarjetas', icon: LayoutGrid },
+              { id: 'tabla', label: 'Tabla', icon: Table2 },
+            ]}
+            className="self-start"
+          />
         </div>
-        <FilterChips options={options} value={category} onChange={setCategory} />
+        <SearchInput value={query} onChange={setQuery} placeholder="Buscar recurso, estrategia o contenido…" />
+        {focus && focus !== 'TPACK' && (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-body">
+            <Info size={15} className="text-plum" /> Las tarjetas muestran el componente <strong>{TPACK_ZONES.find((z) => z.id === focus).label}</strong>.
+            <button type="button" onClick={() => setFocus(null)} className="font-semibold text-plum hover:underline underline-offset-4">
+              Quitar lente
+            </button>
+          </div>
+        )}
 
-        {filtered.length === 0 ? (
-          <EmptyState title="Sin recursos" description="Prueba con otra categoría o término de búsqueda." />
-        ) : (
-          <motion.div key={`${category}-${q}`} initial="hidden" animate="show" variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            <AnimatePresence>
-              {filtered.map((r) => (
-                <ResourceCard key={r.id} item={r} onOpen={setSelected} />
+        {rows.length === 0 ? (
+          <EmptyState title="Sin recursos" description="No hay recursos que coincidan con la búsqueda o la categoría." />
+        ) : view === 'tarjetas' ? (
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnimatePresence mode="popLayout">
+              {rows.map((r) => (
+                <ResourceCard key={r.id} r={r} focus={focus} onOpen={openResource} />
               ))}
             </AnimatePresence>
           </motion.div>
+        ) : (
+          <DataTable
+            columns={TABLE_COLUMNS}
+            rows={rows}
+            rowKey="id"
+            minWidth={980}
+            renderCard={(r) => (
+              <button type="button" onClick={() => openResource(r.id)} className="w-full text-left">
+                <ResourceRowCard r={r} />
+              </button>
+            )}
+          />
         )}
       </section>
 
-      <section className="space-y-5">
-        <div className="flex items-start gap-3">
-          <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum">
-            <CircleCheck size={19} />
-          </span>
-          <div>
-            <h3 className="font-serif text-2xl sm:text-3xl font-semibold text-ink">Recursos por momento del aula invertida</h3>
-            <p className="text-sm text-muted mt-1">Cómo se distribuyen las herramientas antes, durante y después de la tutoría sabatina.</p>
-          </div>
-        </div>
-        <MomentsMatrix />
-      </section>
-
-      <Modal open={Boolean(selected)} onClose={() => setSelected(null)} title={selected?.name} subtitle={selected?.summary} icon={selected?.icon} size="lg">
-        <ResourceDetail item={selected} />
-      </Modal>
+      <ResourceModal resource={opened} open={modalOpen} onClose={() => setModalOpen(false)} />
     </PageShell>
+  );
+}
+
+function ResourceRowCard({ r }) {
+  const RIcon = r.icon;
+  const access = ACCESS[r.access];
+  return (
+    <div className="rounded-2xl border border-line bg-white shadow-paper p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex items-center gap-2.5 font-semibold text-ink text-sm">
+          <RIcon size={17} className="shrink-0 text-plum" /> {r.name}
+        </span>
+        <Badge toneName={CATEGORIES[r.category].toneName}>{CATEGORIES[r.category].label}</Badge>
+      </div>
+      <p className="text-sm">
+        <span className="font-semibold text-plum">{r.metric}</span> <span className="text-muted">{r.metricLabel}</span>
+      </p>
+      <p className="text-sm text-body leading-relaxed">{r.practice}</p>
+      <Badge toneName={access.toneName} icon={access.icon}>
+        {access.label}
+      </Badge>
+    </div>
   );
 }

@@ -1,232 +1,429 @@
-import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquareQuote,
-  GraduationCap,
-  Presentation,
-  Laptop,
-  NotebookPen,
-  RotateCcw,
   ClipboardCheck,
-  House,
   FolderOpen,
   FileText,
   FlaskConical,
   Microscope,
-  HelpCircle,
+  Home,
+  RefreshCcw,
+  ListChecks,
+  Grid3x3,
+  PencilLine,
+  LogOut,
+  CircleCheck,
+  CircleDashed,
+  ChevronDown,
+  GraduationCap,
   UserRound,
   Users,
   Quote,
-  PenLine,
-  Info,
-  Check,
-  Award,
+  ArrowRight,
+  BadgeCheck,
+  Gauge,
+  Repeat,
+  Stamp,
 } from 'lucide-react';
-import { PageShell, GlassCard, SectionHeader, Badge, ProgressBar, DonutChart, Divider } from './ui/Primitives';
-import { cx, fadeUp, stagger } from './ui/tokens';
+import { PageShell, GlassCard, SectionHeader, CardTitle, Badge, TabBar, ProgressBar, DonutChart, ChartLegend, DataTable, PlumBand } from './ui/Primitives';
+import { cx, tone, fadeUp, stagger } from './ui/tokens';
+import DocLink from './shared/DocLink';
+import { DOCS, PRACTICE_SUMMARY } from '../data/practica';
 
 /* =====================================================================
-   EVALUACIÓN Y RETROALIMENTACIÓN · Apartados 10.a y 10.b
+   EVALUACIÓN Y RETROALIMENTACIÓN
    ===================================================================== */
 
-const LEVELS = [
-  { v: 1, label: 'Inicial', hint: 'Lo realiza con apoyo constante' },
-  { v: 2, label: 'En desarrollo', hint: 'Lo realiza de forma parcial o irregular' },
-  { v: 3, label: 'Logrado', hint: 'Lo realiza de forma autónoma y adecuada' },
-  { v: 4, label: 'Destacado', hint: 'Lo realiza con autonomía y propone mejoras' },
+const CLASSROOM = [
+  { icon: Home, title: 'Actividades exaula', text: 'Tareas entre semana, normalmente las actividades al final de cada lección del módulo.' },
+  { icon: FolderOpen, title: 'Portafolio del módulo', text: 'Recopilación del trabajo realizado en cada módulo.' },
+  { icon: FileText, title: 'Exámenes escritos', text: 'Evaluaciones parciales del módulo.' },
+  { icon: FlaskConical, title: 'Experimentos', text: 'Actividades prácticas relacionadas con los contenidos.' },
+  { icon: Microscope, title: 'Prácticas de laboratorio', text: 'Trabajo en equipo con apoyo del docente.' },
 ];
 
-/** Valoración registrada por la practicante (nivel de 1 a 4 en cada criterio). */
+const EXAM_PARTS = [
+  { label: 'Selección múltiple', value: 30, color: '#4A2574', detail: 'Darwin y la selección natural, célula procariota y eucariota, cloroplasto, meiosis y ADN.' },
+  { label: 'Verdadero o falso', value: 20, color: '#B08A4F', detail: 'Selección natural, células vegetales, fotosíntesis y meiosis.' },
+  { label: 'Relación de columnas', value: 20, color: '#5E8C76', detail: 'Mitocondria, gen, cloroplasto y cromosoma.' },
+  { label: 'Crucigrama', value: 30, color: '#B5657F', detail: 'Conceptos clave de evolución, célula y herencia.' },
+];
+
+const RUBRIC_LEVELS = ['Excelente', 'Muy bueno', 'Bueno', 'Necesita mejorar'];
+const RUBRIC = [
+  {
+    id: 'r1',
+    criterion: 'Dominio del tema',
+    points: 25,
+    levels: [
+      'Demuestra amplio conocimiento y explica el contenido con seguridad.',
+      'Conoce el tema y explica la mayoría de los contenidos correctamente.',
+      'Demuestra conocimientos parciales y algunas dificultades para explicar.',
+      'Demuestra poco conocimiento del tema.',
+    ],
+  },
+  {
+    id: 'r2',
+    criterion: 'Organización y secuencia',
+    points: 15,
+    levels: [
+      'Presenta las ideas de manera ordenada, clara y coherente.',
+      'Mantiene un orden adecuado, con pequeñas dificultades de secuencia.',
+      'Algunas ideas están desordenadas o poco relacionadas.',
+      'La exposición no está organizada y no tiene una secuencia.',
+    ],
+  },
+  {
+    id: 'r3',
+    criterion: 'Expresión oral y claridad',
+    points: 25,
+    levels: [
+      'Explica con claridad y utiliza un lenguaje apropiado.',
+      'Se expresa de manera comprensible, aunque presenta algunas pausas o dificultades.',
+      'Tiene dificultades para expresarse.',
+      'Su explicación es poco clara y difícil de comprender.',
+    ],
+  },
+  {
+    id: 'r4',
+    criterion: 'Recursos de apoyo',
+    points: 20,
+    levels: [
+      'Utiliza recursos visuales o materiales pertinentes, creativos y bien elaborados.',
+      'Utiliza recursos adecuados que complementan la explicación.',
+      'Los recursos son limitados o tienen poca relación con el contenido.',
+      'No utiliza recursos o estos no contribuyen a la exposición.',
+    ],
+  },
+  {
+    id: 'r5',
+    criterion: 'Manejo del tiempo y respuestas',
+    points: 15,
+    levels: [
+      'Respeta el tiempo establecido y responde correctamente las preguntas.',
+      'Respeta el tiempo y responde la mayoría de las preguntas.',
+      'Presenta dificultades con el tiempo o responde parcialmente.',
+      'No administra el tiempo y tiene dificultades para responder preguntas.',
+    ],
+  },
+];
+
+const RUBRIC_COLUMNS = [
+  {
+    key: 'criterion',
+    label: 'Criterio',
+    className: 'w-[16%]',
+    render: (r) => (
+      <span className="font-semibold text-ink">
+        {r.criterion}
+        <span className="block mt-1 text-xs font-bold text-bronze">{r.points} pts</span>
+      </span>
+    ),
+  },
+  ...RUBRIC_LEVELS.map((lvl, i) => ({ key: `l${i}`, label: lvl, className: 'w-[21%] text-xs', render: (r) => r.levels[i] })),
+];
+
+const INSTRUMENT_TABS = [
+  { id: 'examen', label: 'Examen parcial · Módulo 4', shortLabel: 'Examen', icon: ClipboardCheck },
+  { id: 'rubrica', label: 'Rúbrica de exposiciones', shortLabel: 'Rúbrica', icon: Grid3x3 },
+  { id: 'cuestionario', label: 'Cuestionario · Unidad 5', shortLabel: 'Cuestionario', icon: PencilLine },
+  { id: 'salida', label: 'Ejercicio de salida', shortLabel: 'Salida', icon: LogOut },
+];
+
 const COMPETENCIES = [
   {
-    id: 'pedagogica',
-    label: 'Pedagógica',
-    icon: GraduationCap,
-    tone: 'violet',
-    criteria: [
-      { id: 'pe1', text: 'Fundamenta sus decisiones en el diagnóstico del grupo.', level: 4 },
-      { id: 'pe2', text: 'Planifica secuencias coherentes con el modelo de aula invertida.', level: 3 },
-      { id: 'pe3', text: 'Atiende la diversidad de ritmos y responsabilidades del estudiantado.', level: 3 },
+    id: 'c1',
+    title: 'Planificación didáctica',
+    toneName: 'violet',
+    items: [
+      { done: true, text: 'Redacté indicadores de logro para cada sesión.', evidence: 'Planes U4 L1, U4 L3 y U5 L3' },
+      { done: true, text: 'Organicé cada clase en momentos con tiempos definidos.', evidence: 'Inicio, desarrollo, aplicación y cierre' },
+      { done: true, text: 'Incluí actividades no presenciales para el trabajo en casa.', evidence: 'Planes de sesión' },
+      { done: true, text: 'Definí recursos y criterios de evaluación por momento.', evidence: 'Planes de sesión' },
     ],
   },
   {
-    id: 'didactica',
-    label: 'Didáctica',
-    icon: Presentation,
-    tone: 'amber',
-    criteria: [
-      { id: 'di1', text: 'Selecciona estrategias activas y colaborativas.', level: 3 },
-      { id: 'di2', text: 'Diseña evaluaciones formativas con evidencias claras.', level: 3 },
-      { id: 'di3', text: 'Formula instrucciones claras y graduadas.', level: 3 },
+    id: 'c2',
+    title: 'Diagnóstico y conocimiento del grupo',
+    toneName: 'amber',
+    items: [
+      { done: true, text: 'Apliqué la guía de observación sistemática.', evidence: '22/08/2026' },
+      { done: true, text: 'Apliqué el cuestionario diagnóstico a 11 estudiantes.', evidence: 'N = 11' },
+      { done: true, text: 'Entrevisté al docente tutor y al coordinador de la modalidad.', evidence: '12/09/2026' },
+      { done: true, text: 'Elaboré la matriz FODA, las conclusiones y las recomendaciones.', evidence: 'Cronograma, actividades 14 a 16' },
     ],
   },
   {
-    id: 'tecnologica',
-    label: 'Tecnológica',
-    icon: Laptop,
-    tone: 'emerald',
-    criteria: [
-      { id: 'te1', text: 'Integra herramientas digitales con propósito didáctico (TPACK).', level: 4 },
-      { id: 'te2', text: 'Diseña recursos Mobile-First y accesibles sin conexión.', level: 3 },
-      { id: 'te3', text: 'Gestiona entornos virtuales de aprendizaje.', level: 3 },
+    id: 'c3',
+    title: 'Integración pedagógica de las TIC',
+    toneName: 'emerald',
+    items: [
+      { done: true, text: 'Utilicé presentación digital y proyector para conducir la clase.', evidence: '24/10/2026' },
+      { done: true, text: 'Asigné un producto digital con entrega en Google Classroom.', evidence: 'Afiche informativo' },
+      { done: true, text: 'Diseñé un recurso digital exportable a PDF.', evidence: 'Guía de Micro aprendizajes' },
+      { done: false, text: 'Implementar sesiones de refuerzo por Google Meet.', evidence: 'Recomendación del docente tutor' },
     ],
   },
   {
-    id: 'reflexiva',
-    label: 'Reflexiva',
-    icon: NotebookPen,
-    tone: 'indigo',
-    criteria: [
-      { id: 're1', text: 'Registra y analiza su práctica en el diario reflexivo.', level: 3 },
-      { id: 're2', text: 'Identifica sus fortalezas y áreas de mejora.', level: 3 },
-      { id: 're3', text: 'Incorpora la retroalimentación recibida.', level: 2 },
+    id: 'c4',
+    title: 'Evaluación del aprendizaje',
+    toneName: 'rose',
+    items: [
+      { done: true, text: 'Preparé el examen parcial del módulo 4.', evidence: '26/09/2026' },
+      { done: true, text: 'Utilicé una rúbrica con criterios ponderados para las exposiciones.', evidence: 'Rúbrica del módulo 4' },
+      { done: true, text: 'Elaboré un cuestionario de la Unidad 5.', evidence: 'Octubre 2026' },
+      { done: true, text: 'Planifiqué cierres con ejercicio de salida y preguntas de recapitulación.', evidence: 'Planes de sesión' },
+    ],
+  },
+  {
+    id: 'c5',
+    title: 'Seguimiento y mejora continua',
+    toneName: 'indigo',
+    items: [
+      { done: true, text: 'Registré las 7 jornadas en hojas de control firmadas.', evidence: `${PRACTICE_SUMMARY.horas} horas` },
+      { done: true, text: 'Formulé una propuesta de mejora fundamentada en el diagnóstico.', evidence: '20/10/2026' },
+      { done: false, text: 'Aplicar fichas de seguimiento y lista de cotejo de la propuesta.', evidence: 'Pendiente según la propuesta' },
+      { done: false, text: 'Comparar los resultados con los objetivos propuestos.', evidence: 'Pendiente según la propuesta' },
     ],
   },
 ];
 
-const INITIAL_LEVELS = Object.fromEntries(COMPETENCIES.flatMap((c) => c.criteria.map((cr) => [cr.id, cr.level])));
+const scoreOf = (c) => Math.round((c.items.filter((i) => i.done).length / c.items.length) * 100);
+const GLOBAL_SCORE = Math.round(COMPETENCIES.reduce((a, c) => a + scoreOf(c), 0) / COMPETENCIES.length);
 
-const STRATEGIES = [
-  { icon: House, title: 'Actividades exaula', type: 'Formativa', moment: 'Entre semana', text: 'Actividades al final de cada lección del módulo, presentadas en la tutoría del sábado.' },
-  { icon: FolderOpen, title: 'Portafolio del módulo', type: 'Formativa y sumativa', moment: 'Continuo', text: 'Reúne las evidencias de aprendizaje del estudiante a lo largo del módulo.' },
-  { icon: FileText, title: 'Exámenes escritos', type: 'Sumativa', moment: 'Cierre del módulo', text: 'Valoran la comprensión de los contenidos de Ciencias Naturales.' },
-  { icon: FlaskConical, title: 'Experimentos', type: 'Formativa', moment: 'Tutoría sabatina', text: 'Aplicación de los conceptos mediante la observación y el registro de datos.' },
-  { icon: Microscope, title: 'Prácticas de laboratorio', type: 'Formativa', moment: 'Tutoría sabatina', text: 'Trabajo en equipo con procedimientos guiados y productos verificables.' },
-  { icon: HelpCircle, title: 'Autoevaluación y preguntas de cierre', type: 'Formativa', moment: 'Final de cada tutoría', text: 'Autoevaluación de lo aprendido y preguntas dirigidas a quienes presentan más dificultades.' },
+/** Comentario literal del tutor UES (se muestra solo si se registra). */
+const UES_COMMENT = '';
+
+const STUDENTS_CLARITY = [
+  { label: 'Muy claras', value: 45.5, color: '#4A2574' },
+  { label: 'Claras', value: 45.5, color: '#9B7BC4' },
+  { label: 'Poco claras', value: 9.1, color: '#C9B48A' },
+];
+const STUDENTS_AVAILABILITY = [
+  { label: 'Siempre', value: 81.8, color: '#2F6B50' },
+  { label: 'Casi siempre', value: 9.1, color: '#5E8C76' },
+  { label: 'Algunas veces', value: 9.1, color: '#C9B48A' },
 ];
 
-/**
- * Retroalimentación recibida. Escribe el comentario textual en `comment`
- * y la fecha en `date` cuando se reciba la valoración.
- */
-const FEEDBACK = [
-  { id: 'tutor', name: 'Lcdo. Amilcar Heriberto Sánchez', role: 'Docente tutor institucional', icon: UserRound, comment: null, date: null },
-  { id: 'ues', name: 'Ing. Misael Enrique Juárez Blanco', role: 'Coordinador y docente tutor UES', icon: GraduationCap, comment: null, date: null },
+const FEEDBACK_LOOP = [
+  { from: 'Docente tutor', said: 'Poco manejo de la tecnología', action: 'Jornadas de Alfabetización Digital Exprés en la tutoría sabatina' },
+  { from: 'Docente tutor', said: 'La pereza a la lectura y la escritura', action: 'Cápsulas visuales con definiciones de tres líneas' },
+  { from: 'Docente tutor', said: 'El aula invertida le ha funcionado bastante bien', action: 'Kits descargables enviados con anticipación' },
+  { from: 'Docente tutor', said: 'Utilizar Meet para reforzar fuera de clase', action: 'Google Meet incluido como refuerzo propuesto' },
+  { from: 'Coordinador', said: 'Formación en informática para los estudiantes', action: 'Rincón de alfabetización digital de la guía' },
 ];
 
 /* ---------------------------------------------------------------------
    Sub-componentes
    --------------------------------------------------------------------- */
 
-const scoreOf = (comp, levels) => {
-  const sum = comp.criteria.reduce((acc, cr) => acc + levels[cr.id], 0);
-  return Math.round((sum / (comp.criteria.length * 4)) * 100);
-};
-
-function LevelButton({ level, active, onClick, compact = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      title={level.hint}
-      className={cx(
-        'rounded-xl border text-xs font-semibold transition-colors',
-        compact ? 'min-h-[40px] px-2' : 'min-h-[38px] w-full px-2',
-        active ? 'border-plum bg-plum text-white shadow-sm' : 'border-line bg-white text-muted hover:border-line-strong hover:text-plum'
-      )}
-    >
-      {active && <Check size={12} className="inline mr-1 -mt-0.5" />}
-      {compact ? level.v : level.label}
-    </button>
-  );
-}
-
-function Rubric({ levels, setLevel }) {
-  return (
-    <div className="space-y-6">
-      {COMPETENCIES.map((comp) => {
-        const Icon = comp.icon;
-        return (
-          <div key={comp.id} className="space-y-3">
-            <p className="flex items-center gap-2 font-semibold text-ink">
-              <Icon size={17} className="text-plum" /> Competencia {comp.label.toLowerCase()}
-              <span className="ml-auto text-sm font-semibold text-plum tabular-nums">{scoreOf(comp, levels)}%</span>
-            </p>
-
-            {/* Móvil: tarjetas */}
-            <div className="grid grid-cols-1 gap-4 md:hidden">
-              {comp.criteria.map((cr) => (
-                <div key={cr.id} className="rounded-2xl border border-line bg-white shadow-paper p-4">
-                  <p className="text-sm text-ink leading-snug">{cr.text}</p>
-                  <div className="mt-3 grid grid-cols-4 gap-1.5">
-                    {LEVELS.map((lv) => (
-                      <LevelButton key={lv.v} level={lv} active={levels[cr.id] === lv.v} onClick={() => setLevel(cr.id, lv.v)} compact />
-                    ))}
-                  </div>
-                  <p className="mt-2 text-xs text-muted">Nivel: {LEVELS[levels[cr.id] - 1].label}</p>
+function InstrumentPanel({ id }) {
+  if (id === 'examen') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+        <div className="md:col-span-5">
+          <DonutChart data={EXAM_PARTS} centerValue="4" centerLabel="partes · 100%" size={200} thickness={28} />
+        </div>
+        <div className="md:col-span-7 space-y-3">
+          {EXAM_PARTS.map((p, i) => (
+            <div key={p.label} className="flex items-start gap-3 rounded-2xl border border-line bg-white p-3.5">
+              <span className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-white" style={{ background: p.color }}>
+                {['I', 'II', 'III', 'IV'][i]}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-ink">{p.label}</p>
+                  <span className="text-sm font-bold text-bronze tabular-nums">{p.value}%</span>
                 </div>
+                <p className="text-xs text-muted mt-0.5 leading-snug">{p.detail}</p>
+              </div>
+            </div>
+          ))}
+          <DocLink src={DOCS.examenM4} label="Examen parcial (PDF)" variant="secondary" />
+        </div>
+      </div>
+    );
+  }
+  if (id === 'rubrica') {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-body">
+            Exposiciones del módulo 4 · cinco criterios ponderados que suman <strong className="text-ink">100%</strong>.
+          </p>
+          <DocLink src={DOCS.rubrica} label="Rúbrica (PDF)" variant="secondary" size="sm" />
+        </div>
+        <div className="flex h-3 w-full rounded-full overflow-hidden">
+          {RUBRIC.map((r, i) => (
+            <motion.span
+              key={r.id}
+              initial={{ width: 0 }}
+              whileInView={{ width: `${r.points}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: i * 0.08 }}
+              className="h-full border-r-2 border-white last:border-r-0"
+              style={{ background: ['#4A2574', '#B08A4F', '#5E8C76', '#B5657F', '#5A6BA8'][i] }}
+              title={`${r.criterion}: ${r.points} pts`}
+            />
+          ))}
+        </div>
+        <DataTable
+          columns={RUBRIC_COLUMNS}
+          rows={RUBRIC}
+          rowKey="id"
+          minWidth={900}
+          renderCard={(r) => (
+            <div className="rounded-2xl border border-line bg-white p-4 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-ink text-sm">{r.criterion}</p>
+                <Badge toneName="amber">{r.points} pts</Badge>
+              </div>
+              {r.levels.map((l, i) => (
+                <p key={RUBRIC_LEVELS[i]} className="text-xs text-body leading-relaxed">
+                  <span className="font-semibold text-plum">{RUBRIC_LEVELS[i]}: </span>
+                  {l}
+                </p>
               ))}
             </div>
-
-            {/* Escritorio: tabla */}
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-line bg-white shadow-paper">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead>
-                  <tr className="bg-silk text-[11px] uppercase tracking-[0.14em] text-muted">
-                    <th className="px-4 py-3 text-left font-semibold">Criterio</th>
-                    {LEVELS.map((lv) => (
-                      <th key={lv.v} className="px-2 py-3 text-center font-semibold w-32">
-                        {lv.v} · {lv.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {comp.criteria.map((cr) => (
-                    <tr key={cr.id} className="border-t border-line hover:bg-ivory transition-colors">
-                      <td className="px-4 py-3 text-ink">{cr.text}</td>
-                      {LEVELS.map((lv) => (
-                        <td key={lv.v} className="px-2 py-3">
-                          <LevelButton level={lv} active={levels[cr.id] === lv.v} onClick={() => setLevel(cr.id, lv.v)} />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          )}
+        />
+      </div>
+    );
+  }
+  if (id === 'cuestionario') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="md:col-span-4 rounded-3xl border border-line bg-ivory p-5 text-center">
+          <span className="font-serif text-6xl font-semibold text-plum leading-none">15</span>
+          <p className="mt-2 text-sm font-semibold text-ink">ítems de completación</p>
+          <p className="text-xs text-muted mt-1">Unidad 5 · Lección 1 · Primero "A"</p>
+        </div>
+        <div className="md:col-span-8 space-y-4">
+          <p className="text-sm text-body leading-relaxed">
+            El estudiante lee cada oración y completa el espacio en blanco con el término correspondiente. Los ítems recorren los conceptos básicos de ecología.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {['Ecología', 'Especie y población', 'Comunidad', 'Hábitat y nicho', 'Ramas de la ecología', 'Estudio de poblaciones', 'Crecimiento poblacional', 'Biomas y biogeografía'].map((t) => (
+              <Badge key={t} toneName="emerald">
+                {t}
+              </Badge>
+            ))}
           </div>
-        );
-      })}
+          <DocLink src={DOCS.cuestionarioCCNN} label="Cuestionario (PDF)" variant="secondary" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-body leading-relaxed">
+        En el cierre de la Unidad 4, Lección 1 planifiqué un ejercicio de salida con tres preguntas, revisadas en plenaria para corregir dudas.
+      </p>
+      <ol className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {['Una pregunta sobre selección natural.', 'Una pregunta sobre pruebas evolutivas.', 'Una pregunta sobre diferencias entre células.'].map((q, i) => (
+          <li key={q} className="rounded-2xl border border-line bg-white p-4">
+            <span className="font-serif text-3xl font-semibold text-bronze leading-none">{i + 1}</span>
+            <p className="mt-2 text-sm text-body">{q}</p>
+          </li>
+        ))}
+      </ol>
+      <DocLink src={DOCS.planU4L1} label="Plan de sesión U4 L1 (PDF)" variant="secondary" />
     </div>
   );
 }
 
-function FeedbackCard({ item }) {
-  const Icon = item.icon;
+function CompetencyRow({ c, index }) {
+  const [open, setOpen] = useState(false);
+  const score = scoreOf(c);
+  const t = tone(c.toneName);
   return (
-    <GlassCard hover={false} className="h-full flex flex-col">
-      <div className="flex items-start gap-4">
-        <span className="shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum">
+    <div className={cx('rounded-2xl border bg-white transition-all', open ? 'border-line-strong shadow-paper-lg' : 'border-line shadow-paper')}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="w-full p-4 sm:p-5 text-left">
+        <div className="flex items-center gap-3">
+          <span className={cx('shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl border font-serif text-lg font-semibold', t.bg, t.border, t.text)}>{index + 1}</span>
+          <div className="flex-1 min-w-0">
+            <ProgressBar label={c.title} value={score} toneName={c.toneName} delay={index * 0.1} />
+          </div>
+          <motion.span animate={{ rotate: open ? 180 : 0 }} className="shrink-0 text-plum">
+            <ChevronDown size={18} />
+          </motion.span>
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.ul
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden px-4 sm:px-5 pb-4 space-y-2"
+          >
+            {c.items.map((it) => (
+              <li key={it.text} className={cx('flex items-start gap-2.5 rounded-xl border px-3 py-2.5', it.done ? 'border-sage-line bg-sage-soft' : 'border-dashed border-line-strong bg-ivory')}>
+                {it.done ? <CircleCheck size={16} className="shrink-0 mt-0.5 text-sage" /> : <CircleDashed size={16} className="shrink-0 mt-0.5 text-muted" />}
+                <span className="flex-1 text-sm text-body leading-snug">{it.text}</span>
+                <span className="shrink-0 text-[11px] text-muted text-right max-w-[40%]">{it.evidence}</span>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function StackedPerception({ title, value, data }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <span className="font-serif text-2xl font-semibold text-plum leading-none">{value}</span>
+      </div>
+      <div className="mt-2 flex h-3 w-full rounded-full overflow-hidden bg-silk">
+        {data.map((d, i) => (
+          <motion.span
+            key={d.label}
+            initial={{ width: 0 }}
+            whileInView={{ width: `${d.value}%` }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: i * 0.12 }}
+            className="h-full border-r-2 border-white last:border-r-0"
+            style={{ background: d.color }}
+            title={`${d.label}: ${d.value}%`}
+          />
+        ))}
+      </div>
+      <ChartLegend className="mt-3" data={data.map((d) => ({ ...d, percent: d.value, value: Math.round((d.value / 100) * 11) }))} />
+    </div>
+  );
+}
+
+function FeedbackCard({ icon: Icon, toneName, name, role, quotes, validation, children }) {
+  const t = tone(toneName);
+  return (
+    <GlassCard className="h-full flex flex-col gap-4">
+      <div className="flex items-start gap-3">
+        <span className={cx('shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl border', t.bg, t.border, t.text)}>
           <Icon size={22} />
         </span>
         <div className="min-w-0">
-          <p className="font-serif text-2xl font-semibold text-ink leading-tight">{item.name}</p>
-          <p className="text-sm text-muted">{item.role}</p>
+          <p className="font-semibold text-ink leading-snug">{name}</p>
+          <p className="text-xs text-muted mt-0.5">{role}</p>
         </div>
       </div>
-      {item.comment ? (
-        <figure className="mt-5 flex-1">
-          <Quote size={20} className="text-bronze" />
-          <blockquote className="mt-2 font-serif italic text-xl leading-snug text-ink">{item.comment}</blockquote>
-          {item.date && <figcaption className="mt-3 text-xs uppercase tracking-[0.18em] text-bronze">{item.date}</figcaption>}
+      {quotes?.map((q) => (
+        <figure key={q.text} className="relative rounded-2xl border border-sand-line bg-sand p-4 pl-10">
+          <Quote size={16} className="absolute left-3.5 top-4 text-bronze" />
+          <blockquote className="font-serif italic text-[17px] leading-snug text-ink">“{q.text}”</blockquote>
+          <figcaption className="mt-2 text-[11px] uppercase tracking-[0.14em] text-bronze">{q.source}</figcaption>
         </figure>
-      ) : (
-        <div className="mt-5 flex-1 rounded-2xl border border-dashed border-line-strong bg-ivory p-5">
-          <Badge toneName="slate" icon={PenLine}>
-            Pendiente de registrar
-          </Badge>
-          <p className="mt-3 text-sm text-body leading-relaxed">Espacio reservado para transcribir la valoración recibida. Se sugiere incluir:</p>
-          <ul className="mt-2 space-y-1.5">
-            {['Fortalezas señaladas en la práctica.', 'Sugerencias de mejora.', 'Fecha y contexto de la retroalimentación.', 'Cómo se incorporó en las siguientes jornadas.'].map((t) => (
-              <li key={t} className="flex gap-2 text-sm text-muted">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rotate-45 bg-line-strong" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
+      ))}
+      {children}
+      {validation && (
+        <p className="mt-auto flex items-start gap-2 rounded-xl border border-sage-line bg-sage-soft px-3 py-2.5 text-xs text-sage font-semibold">
+          <BadgeCheck size={15} className="shrink-0" /> {validation}
+        </p>
       )}
     </GlassCard>
   );
@@ -237,171 +434,181 @@ function FeedbackCard({ item }) {
    --------------------------------------------------------------------- */
 
 export default function Evaluacion_y_retroalimentacion() {
-  const [levels, setLevels] = useState(INITIAL_LEVELS);
-  const setLevel = (id, v) => setLevels((prev) => ({ ...prev, [id]: v }));
-  const modified = Object.keys(INITIAL_LEVELS).some((k) => INITIAL_LEVELS[k] !== levels[k]);
-
-  const scores = useMemo(() => COMPETENCIES.map((c) => ({ ...c, score: scoreOf(c, levels) })), [levels]);
-  const overall = Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length);
-  const distribution = LEVELS.map((lv) => ({ label: lv.label, value: Object.values(levels).filter((x) => x === lv.v).length }));
+  const [instrument, setInstrument] = useState('examen');
 
   return (
     <PageShell>
       <SectionHeader
-        eyebrow="Apartado 10 · Evaluación"
+        eyebrow="Evaluación"
         icon={MessageSquareQuote}
         title="Evaluación y"
         highlight="retroalimentación"
-        description="Autoevaluación del desempeño docente, estrategias de evaluación aplicadas en el aula y retroalimentación recibida durante la práctica."
+        description="Cómo se evalúa en el aula de la modalidad flexible, los instrumentos que preparé o utilicé, mi autoevaluación basada en evidencias y la retroalimentación recibida."
       />
 
-      {/* 10.a Autoevaluación */}
+      {/* Evaluación en el aula */}
       <section className="space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">10.a Autoevaluación del desempeño docente</p>
-            <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Stephanie Alexandra Hernández Sibrián</h3>
-          </div>
-          {modified && (
-            <button
-              type="button"
-              onClick={() => setLevels(INITIAL_LEVELS)}
-              className="self-start min-h-[42px] inline-flex items-center gap-2 rounded-2xl border border-lilac-line bg-lilac px-4 text-sm font-semibold text-plum hover:bg-silk-deep transition-colors"
-            >
-              <RotateCcw size={16} /> Restablecer valoración registrada
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <GlassCard hover={false} className="lg:col-span-4 flex flex-col items-center text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-4">Nivel global de logro</p>
-            <DonutChart
-              data={distribution.map((d, i) => ({ ...d, color: ['#C9B48A', '#B08A4F', '#9B7BC4', '#4A2574'][i] }))}
-              centerValue={`${overall}%`}
-              centerLabel="de logro"
-            />
-            <div className="mt-4 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-body">
-              {distribution.map((d, i) => (
-                <span key={d.label} className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: ['#C9B48A', '#B08A4F', '#9B7BC4', '#4A2574'][i] }} />
-                  {d.label} ({d.value})
-                </span>
-              ))}
-            </div>
-          </GlassCard>
-          <GlassCard hover={false} className="lg:col-span-8">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-5">Logro por competencia</p>
-            <div className="space-y-5">
-              {scores.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <div key={s.id} className="flex items-center gap-4">
-                    <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-lilac border border-lilac-line text-plum">
-                      <Icon size={18} />
-                    </span>
-                    <div className="flex-1">
-                      <ProgressBar label={`Competencia ${s.label.toLowerCase()}`} value={s.score} toneName={s.tone} delay={i * 0.08} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {LEVELS.map((lv) => (
-                <div key={lv.v} className="rounded-xl border border-line bg-ivory p-2.5">
-                  <p className="text-xs font-semibold text-ink">
-                    {lv.v} · {lv.label}
-                  </p>
-                  <p className="text-[11px] text-muted leading-tight mt-0.5">{lv.hint}</p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-
-        <GlassCard hover={false}>
-          <div className="flex items-start gap-2.5 mb-6 rounded-2xl border border-sand-line bg-sand px-4 py-3 text-sm text-bronze-dark">
-            <Info size={16} className="shrink-0 mt-0.5" />
-            La rúbrica muestra la valoración registrada por la practicante. Puedes seleccionar otros niveles para explorar escenarios; los cambios no se guardan.
-          </div>
-          <Rubric levels={levels} setLevel={setLevel} />
-        </GlassCard>
-      </section>
-
-      <Divider />
-
-      {/* Estrategias de evaluación */}
-      <section className="space-y-6">
-        <div className="flex items-start gap-3">
-          <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum">
-            <ClipboardCheck size={19} />
-          </span>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">Estrategias en el aula</p>
-            <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Cómo se evalúa y retroalimenta</h3>
-            <p className="text-sm text-muted mt-1">Según la entrevista al docente tutor (preguntas 5 y 6).</p>
-          </div>
-        </div>
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: '-40px' }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {STRATEGIES.map((s) => {
-            const Icon = s.icon;
+        <CardTitle icon={ClipboardCheck} title="Evaluación en el aula" subtitle="Estrategias e instrumentos que utiliza el docente tutor" toneName="amber" />
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {CLASSROOM.map((c) => {
+            const CIcon = c.icon;
             return (
-              <motion.div key={s.title} variants={fadeUp} className="rounded-3xl border border-line bg-white shadow-paper p-5 flex flex-col">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sand border border-sand-line text-bronze">
-                    <Icon size={18} />
-                  </span>
-                  <Badge toneName={s.type === 'Sumativa' ? 'amber' : s.type === 'Formativa' ? 'emerald' : 'violet'}>{s.type}</Badge>
-                </div>
-                <p className="mt-4 font-semibold text-ink">{s.title}</p>
-                <p className="mt-1 text-sm text-body leading-relaxed flex-1">{s.text}</p>
-                <p className="mt-3 text-xs font-semibold text-plum">{s.moment}</p>
+              <motion.div key={c.title} variants={fadeUp} className="rounded-2xl border border-line bg-white shadow-paper p-4">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-lilac border border-lilac-line text-plum">
+                  <CIcon size={18} />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-ink">{c.title}</p>
+                <p className="mt-1 text-xs text-muted leading-snug">{c.text}</p>
               </motion.div>
             );
           })}
         </motion.div>
-      </section>
-
-      {/* 10.b Retroalimentación */}
-      <section className="space-y-6">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">10.b Comentarios y retroalimentación recibida</p>
-          <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Voces que acompañan la práctica</h3>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {FEEDBACK.map((f) => (
-            <FeedbackCard key={f.id} item={f} />
-          ))}
-          <div className="rounded-3xl bg-abyss text-on-plum p-6 sm:p-7 flex flex-col">
-            <div className="flex items-start gap-4">
-              <span className="shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-plum-deep border border-white/20 text-[#E5D5B5]">
-                <Users size={22} />
-              </span>
-              <div>
-                <p className="font-serif text-2xl font-semibold leading-tight">Percepción estudiantil</p>
-                <p className="text-sm text-on-plum-muted">Diagnóstico · 12/09/2026 · N = 11</p>
-              </div>
-            </div>
-            <div className="mt-6 space-y-4 flex-1">
-              {[
-                { v: '90.9%', l: 'percibe instrucciones claras o muy claras', s: 'P10' },
-                { v: '90.9%', l: 'siente al docente disponible siempre o casi siempre', s: 'P11' },
-              ].map((m) => (
-                <div key={m.s} className="rounded-2xl border border-white/15 p-4 flex items-center gap-4">
-                  <span className="font-serif text-4xl font-semibold text-[#E5D5B5] leading-none">{m.v}</span>
-                  <span className="text-sm text-on-plum leading-snug">
-                    {m.l} <span className="text-on-plum-muted">({m.s})</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-5 flex gap-2 text-xs text-on-plum-muted leading-relaxed">
-              <Award size={15} className="shrink-0 text-[#E5D5B5]" />
-              Valoración del acompañamiento docente en la asignatura, que la practicante asume como referente de calidad para su propia práctica.
+        <div className="flex flex-col md:flex-row md:items-center gap-4 rounded-3xl border border-sand-line bg-sand p-5 sm:p-6">
+          <span className="shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-sand-line text-bronze">
+            <RefreshCcw size={22} />
+          </span>
+          <div>
+            <p className="font-semibold text-ink">Autoevaluación y preguntas al final de cada clase</p>
+            <p className="mt-1 text-sm text-body leading-relaxed">
+              Según el docente tutor, al finalizar la clase se realiza una autoevaluación de lo aprendido y una ronda de preguntas y respuestas, que le permite identificar a
+              quienes necesitan apoyo adicional.
             </p>
           </div>
         </div>
+      </section>
+
+      {/* Instrumentos */}
+      <section className="space-y-5">
+        <CardTitle icon={ListChecks} title="Instrumentos de evaluación de la práctica" subtitle="Preparados o utilizados durante las jornadas" />
+        <TabBar tabs={INSTRUMENT_TABS} active={instrument} onChange={setInstrument} layoutId="evaluacion-instrumentos" />
+        <AnimatePresence mode="wait">
+          <motion.div key={instrument} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            <GlassCard hover={false}>
+              <InstrumentPanel id={instrument} />
+            </GlassCard>
+          </motion.div>
+        </AnimatePresence>
+      </section>
+
+      {/* Autoevaluación */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-4 lg:sticky lg:top-28 space-y-4">
+          <PlumBand className="!p-6 sm:!p-8">
+            <Gauge size={22} className="text-[#E5D5B5]" />
+            <p className="mt-3 text-[11px] uppercase tracking-[0.22em] text-[#E5D5B5] font-semibold">Panel de autoevaluación docente</p>
+            <p className="mt-2 font-serif text-6xl font-semibold text-on-plum leading-none">{GLOBAL_SCORE}%</p>
+            <p className="mt-3 text-sm text-on-plum-muted leading-relaxed">
+              Cada barra indica la proporción de indicadores que puedo respaldar con una evidencia documentada en este portafolio. Los indicadores pendientes señalan mis
+              áreas de mejora.
+            </p>
+          </PlumBand>
+          <div className="flex flex-wrap gap-2">
+            <Badge toneName="emerald" icon={CircleCheck}>
+              Evidenciado
+            </Badge>
+            <Badge toneName="slate" icon={CircleDashed}>
+              Pendiente
+            </Badge>
+          </div>
+        </div>
+        <div className="lg:col-span-8 space-y-3">
+          {COMPETENCIES.map((c, i) => (
+            <CompetencyRow key={c.id} c={c} index={i} />
+          ))}
+        </div>
+      </section>
+
+      {/* Retroalimentación */}
+      <section className="space-y-6">
+        <SectionHeader
+          eyebrow="Retroalimentación"
+          icon={MessageSquareQuote}
+          title="Voces que orientaron"
+          highlight="mi práctica"
+          description="Orientaciones del docente tutor y del coordinador recogidas en las entrevistas del 12/09/2026, acompañamiento de la tutoría UES y percepción del estudiantado."
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <FeedbackCard
+            icon={UserRound}
+            toneName="violet"
+            name="Lcdo. Amilcar Heriberto Sánchez"
+            role="Docente tutor institucional"
+            quotes={[
+              { text: 'Trabajar el aula invertida en esta modalidad me ha funcionado bastante bien, el incluir proyectos que involucren a la tecnología.', source: 'Entrevista · 12/09/2026' },
+              { text: 'Que se utilice meet, para reforzar en horarios que no están en clase.', source: 'Entrevista · 12/09/2026' },
+            ]}
+            validation={`Firmó las ${PRACTICE_SUMMARY.jornadas} hojas de control semanal`}
+          />
+          <FeedbackCard
+            icon={GraduationCap}
+            toneName="amber"
+            name="Ing. Misael Enrique Juárez Blanco"
+            role="Docente tutor y coordinador UES · DDP1109 · GT-01"
+            quotes={UES_COMMENT ? [{ text: UES_COMMENT, source: 'Tutoría UES' }] : null}
+            validation="Tutoría académica de la Práctica Docente"
+          >
+            {!UES_COMMENT && (
+              <div className="rounded-2xl border border-line bg-ivory p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold mb-2">Entregables presentados a la tutoría</p>
+                <ul className="space-y-1.5 text-sm text-body">
+                  <li className="flex gap-2">
+                    <CircleCheck size={15} className="shrink-0 mt-0.5 text-sage" /> Informe diagnóstico (20/09/2026)
+                  </li>
+                  <li className="flex gap-2">
+                    <CircleCheck size={15} className="shrink-0 mt-0.5 text-sage" /> Propuesta de mejora (20/10/2026)
+                  </li>
+                  <li className="flex gap-2">
+                    <CircleCheck size={15} className="shrink-0 mt-0.5 text-sage" /> {PRACTICE_SUMMARY.jornadas} hojas de control semanal
+                  </li>
+                  <li className="flex gap-2">
+                    <CircleCheck size={15} className="shrink-0 mt-0.5 text-sage" /> Firma de asistencia del practicante
+                  </li>
+                </ul>
+              </div>
+            )}
+          </FeedbackCard>
+          <FeedbackCard
+            icon={Stamp}
+            toneName="emerald"
+            name="Lcdo. Gerardo Escobar Mejía"
+            role="Coordinador de Modalidad Flexible"
+            quotes={[
+              {
+                text: 'Que se incluya un espacio donde se brinde formación en el área de informática a los estudiantes, ya que a muchos se les dificulta utilizar una computadora.',
+                source: 'Entrevista · 12/09/2026',
+              },
+            ]}
+            validation="Firma y sello del consolidado de asistencia"
+          />
+          <FeedbackCard icon={Users} toneName="indigo" name="Percepción del estudiantado" role="Cuestionario diagnóstico · N = 11">
+            <div className="space-y-5">
+              <StackedPerception title="Instrucciones claras" value="90.9%" data={STUDENTS_CLARITY} />
+              <StackedPerception title="Disponibilidad del docente" value="90.9%" data={STUDENTS_AVAILABILITY} />
+            </div>
+          </FeedbackCard>
+        </div>
+      </section>
+
+      {/* Ciclo de retroalimentación */}
+      <section className="space-y-5">
+        <CardTitle icon={Repeat} title="De la retroalimentación a la acción" subtitle="Cómo incorporé cada orientación en la propuesta de mejora" toneName="emerald" />
+        <motion.ul initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="space-y-2.5">
+          {FEEDBACK_LOOP.map((f) => (
+            <motion.li key={f.said} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-4 items-stretch">
+              <div className="rounded-2xl border border-line bg-white shadow-paper p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-bronze font-bold">{f.from}</p>
+                <p className="mt-1 text-sm text-ink">{f.said}</p>
+              </div>
+              <div className="flex items-center justify-center text-line-strong" aria-hidden="true">
+                <ArrowRight size={18} className="rotate-90 md:rotate-0" />
+              </div>
+              <div className="rounded-2xl border border-sage-line bg-sage-soft p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-sage font-bold">Acción</p>
+                <p className="mt-1 text-sm text-ink">{f.action}</p>
+              </div>
+            </motion.li>
+          ))}
+        </motion.ul>
       </section>
     </PageShell>
   );

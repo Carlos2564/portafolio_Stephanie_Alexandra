@@ -5,400 +5,372 @@ import {
   School,
   Users,
   Laptop,
-  Landmark,
-  UserCog,
-  GraduationCap,
-  CalendarDays,
+  Flame,
+  Wifi,
+  Clock,
   MessageCircle,
-  DoorOpen,
   Library,
-  Briefcase,
+  Building2,
   Presentation,
-  HeartHandshake,
+  HeartPulse,
   BookCopy,
+  DoorOpen,
+  UserRound,
+  GraduationCap,
+  Crown,
+  Briefcase,
   Baby,
   Bus,
-  Flame,
-  Clock,
-  Monitor,
+  PlayCircle,
+  UsersRound,
+  Gamepad2,
+  Repeat,
+  PenLine,
+  MonitorCog,
   Projector,
   Speaker,
-  Globe,
+  Network,
   Wrench,
   Smartphone,
-  Wifi,
-  WifiOff,
-  Signal,
-  NotebookPen,
-  PlayCircle,
-  Gamepad2,
-  FileText,
-  BookOpen,
-  TriangleAlert,
-  Building2,
-  House,
-  ArrowDown,
+  Monitor,
+  Lightbulb,
+  ChevronRight,
 } from 'lucide-react';
-import { PageShell, GlassCard, SectionHeader, Badge, TabBar, DonutChart, ChartLegend, HorizontalBars, ProgressBar, PlumBand } from './ui/Primitives';
-import { cx, fadeUp, stagger, CHART_COLORS } from './ui/tokens';
+import {
+  PageShell,
+  GlassCard,
+  SectionHeader,
+  CardTitle,
+  Badge,
+  TabBar,
+  StatCard,
+  ProgressBar,
+  DonutChart,
+  ChartLegend,
+  HorizontalBars,
+  DataTable,
+  EditorialQuote,
+} from './ui/Primitives';
+import { cx, fadeUp, stagger } from './ui/tokens';
 
 /* =====================================================================
-   CONTEXTO EDUCATIVO · Apartados 4.a, 4.b y 4.c
+   CONTEXTO EDUCATIVO · Dashboard de institución, grupo y recursos TIC
    ===================================================================== */
 
-const KEY_FACTS = [
-  { icon: MapPin, label: 'Ubicación', value: 'Chalatenango, El Salvador' },
-  { icon: School, label: 'Modalidades', value: 'Presencial y flexible' },
-  { icon: CalendarDays, label: 'Jornada flexible', value: 'Sábados · 7:00 a.m. – 5:00 p.m.' },
-  { icon: Users, label: 'Grupo diagnosticado', value: '1.° Año · N = 11 estudiantes' },
-];
-
-const ORG_CHART = [
-  { icon: Landmark, role: 'Director General', detail: 'Liderazgo de ambas modalidades (presencial y flexible)' },
-  { icon: UserCog, role: 'Coordinación de Modalidades Flexibles', detail: 'A cargo del coordinador Gerardo: matrículas, registros y organización académica' },
-  { icon: GraduationCap, role: 'Tutores docentes', detail: 'Gran parte labora en la misma institución entre semana; el resto, en otras instituciones' },
-  { icon: Users, role: 'Estudiantes de la modalidad flexible', detail: 'Jornada sabatina y estudio autónomo entre semana' },
-];
-
-const WEEK = [
-  { day: 'Lun – Vie', title: 'Estudio autónomo', text: 'Desarrollo de las actividades al final de cada lección del módulo.', icon: NotebookPen },
-  { day: 'Lun – Vie', title: 'Consultas por WhatsApp', text: 'Atención de dudas en los grupos de cada asignatura con el docente.', icon: MessageCircle },
-  { day: 'Sábado', title: 'Jornada semipresencial', text: 'Tutorías de 7:00 a.m. a 5:00 p.m.: presentación de lo trabajado y nuevos contenidos.', icon: Presentation },
-];
-
-const SERVICES = [
-  { icon: DoorOpen, title: 'Aulas asignadas', text: 'Espacios destinados exclusivamente a la modalidad flexible.' },
-  { icon: Library, title: 'Biblioteca', text: 'Consulta de material bibliográfico de apoyo.' },
-  { icon: Briefcase, title: 'Área administrativa', text: 'Gestión de matrículas, registros y atención al estudiante.' },
-  { icon: Presentation, title: 'Salón de usos múltiples', text: 'Espacio equipado con proyector fijo.' },
-  { icon: HeartHandshake, title: 'Apoyo psicológico', text: 'Acompañamiento socioemocional al estudiantado.' },
-  { icon: BookCopy, title: 'Módulos impresos y digitales', text: 'Entrega gratuita de módulos para cada materia.' },
-];
-
-const AGE = [
-  { label: '15-16 años', value: 0, percent: 0 },
-  { label: '17-18 años', value: 2, percent: 18.2 },
-  { label: '19 años o más', value: 9, percent: 81.8 },
-];
-
-const ATTENDANCE = [
-  { icon: Briefcase, title: 'Horarios laborales', text: 'El trabajo impide asistir a la jornada en varios casos.' },
-  { icon: Baby, title: 'Cuidado de los hijos', text: 'Madres y padres faltan cuando no tienen quién cuide a su hijo o cuando este enferma.' },
-  { icon: Bus, title: 'Transporte inestable', text: 'Dificultad de traslado desde otros municipios de Chalatenango.' },
-];
-
-const PREFERENCES = [
-  { label: 'Videos explicativos', value: 5, percent: 45.5 },
-  { label: 'Trabajo en equipo', value: 5, percent: 45.5 },
-  { label: 'Dinámicas o juegos interactivos', value: 5, percent: 45.5 },
-  { label: 'Lecturas o documentos PDF', value: 4, percent: 36.4 },
-];
-
-const INVENTORY = [
-  { icon: Building2, value: '1', label: 'Laboratorio de informática', detail: 'Espacio para prácticas con equipo de cómputo' },
-  { icon: Monitor, value: '~30', label: 'Computadoras funcionales', detail: 'Requieren actualización de software' },
-  { icon: Projector, value: '6 + 1', label: 'Proyectores', detail: '6 de uso compartido y 1 fijo en el salón de usos múltiples' },
-  { icon: Speaker, value: 'Sí', label: 'Equipos de audio', detail: 'Bocinas en buen estado' },
-  { icon: Globe, value: 'MINED', label: 'Red de Internet', detail: 'Funcional para lo académico y administrativo; restringe plataformas no educativas' },
-  { icon: Wrench, value: '0', label: 'Técnicos permanentes', detail: 'El MINED da soporte de red y los docentes de informática mantienen los equipos' },
-];
-
-const HOME = [
-  { id: 'pc', icon: Laptop, indicator: 'Usa computadora para sus trabajos', value: '72.7%', count: '8 de 11', source: 'Encuesta · P8', tone: 'emerald' },
-  { id: 'phone', icon: Smartphone, indicator: 'Depende exclusivamente del smartphone', value: '27.3%', count: '3 de 11', source: 'Encuesta · P8', tone: 'amber' },
-  { id: 'net', icon: Wifi, indicator: 'Cuenta con Internet en casa', value: '72.7%', count: '8 de 11', source: 'Encuesta · P3', tone: 'emerald' },
-  { id: 'unstable', icon: Signal, indicator: 'Tiene señal inestable', value: '18.2%', count: '2 de 11', source: 'Encuesta · P3', tone: 'amber' },
-  { id: 'none', icon: WifiOff, indicator: 'No tiene acceso a Internet', value: '9.1%', count: '1 de 11', source: 'Encuesta · P3', tone: 'rose' },
+const KPIS = [
+  { label: 'Encuestados', value: '11', hint: 'Estudiantes de 1.° Año de Bachillerato', icon: Users, toneName: 'violet' },
+  { label: 'Motivación', value: '90.9%', hint: 'Motivado o bastante motivado', icon: Flame, toneName: 'amber' },
+  { label: 'Laboratorio', value: '30', hint: 'Computadoras institucionales', icon: Laptop, toneName: 'emerald' },
+  { label: 'Internet en casa', value: '72.7%', hint: 'Cuenta con conexión en el hogar', icon: Wifi, toneName: 'indigo' },
 ];
 
 const TABS = [
-  { id: 'institucion', label: '4.a Institución educativa', shortLabel: '4.a Institución', icon: School },
-  { id: 'grupo', label: '4.b Grupo asignado', shortLabel: '4.b Grupo', icon: Users },
-  { id: 'recursos', label: '4.c Recursos tecnológicos', shortLabel: '4.c Recursos', icon: Laptop },
+  { id: 'institucion', label: 'Institución', icon: School },
+  { id: 'grupo', label: 'Grupo de práctica', shortLabel: 'Grupo', icon: Users },
+  { id: 'tic', label: 'Recursos TIC', icon: Laptop },
+];
+
+const FACILITIES = [
+  { icon: DoorOpen, label: 'Aulas exclusivas', text: 'Asignadas específicamente a la modalidad flexible.' },
+  { icon: Library, label: 'Biblioteca', text: 'Espacio de consulta y estudio.' },
+  { icon: Building2, label: 'Área administrativa', text: 'Matrículas, registros y gestión.' },
+  { icon: Presentation, label: 'Salón de usos múltiples', text: 'Cuenta con un proyector fijo.' },
+  { icon: HeartPulse, label: 'Apoyo psicológico', text: 'Acompañamiento institucional.' },
+  { icon: BookCopy, label: 'Entrega de módulos', text: 'Módulos impresos y digitales por materia.' },
+];
+
+const ORG_CHART = [
+  { icon: Crown, role: 'Director General', name: 'Conduce ambas modalidades: presencial y flexible' },
+  { icon: UserRound, role: 'Coordinador de Modalidad Flexible', name: 'Lcdo. Gerardo Escobar Mejía' },
+  { icon: GraduationCap, role: 'Docente tutor institucional', name: 'Lcdo. Amilcar Heriberto Sánchez' },
+  { icon: PenLine, role: 'Practicante', name: 'Stephanie Alexandra Hernández Sibrián' },
+];
+
+const BARRIERS = [
+  { icon: Briefcase, title: 'Horarios laborales', text: 'Varios estudiantes trabajan y, en algunos casos, el trabajo les impide asistir a las jornadas.' },
+  { icon: Baby, title: 'Cuidado de hijos o enfermedad', text: 'Quienes son madres o padres de familia faltan cuando no tienen quién cuide a sus hijos o cuando estos enferman.' },
+  { icon: Bus, title: 'Transporte inestable', text: 'La sede atiende a estudiantes de otros municipios de Chalatenango, con transporte inestable.' },
+];
+
+const AGE = [
+  { label: '19 años o más', value: 81.8, color: '#4A2574' },
+  { label: '17-18 años', value: 18.2, color: '#B08A4F' },
+];
+
+const SEX = [
+  { label: 'Masculino', value: 54.5, color: '#4A2574' },
+  { label: 'Femenino', value: 45.5, color: '#B5657F' },
+];
+
+const PREFERENCES = [
+  { label: 'Videos explicativos', value: 5, percent: 45.5, color: '#4A2574' },
+  { label: 'Trabajo en equipo', value: 5, percent: 45.5, color: '#B08A4F' },
+  { label: 'Dinámicas o juegos interactivos', value: 5, percent: 45.5, color: '#5E8C76' },
+];
+
+const DEVICE = [
+  { label: 'Computadora', value: 72.7, color: '#4A2574' },
+  { label: 'Smartphone', value: 27.3, color: '#B08A4F' },
+];
+
+const CONNECTIVITY = [
+  { label: 'Cuenta con Internet', value: 72.7, color: '#5E8C76' },
+  { label: 'Señal inestable', value: 18.2, color: '#B08A4F' },
+  { label: 'Sin acceso', value: 9.1, color: '#B5657F' },
+];
+
+const INVENTORY = [
+  { id: 'lab', icon: MonitorCog, resource: 'Laboratorio de informática', amount: '1 laboratorio · 30 computadoras', status: 'Funcional', toneName: 'emerald', note: 'Requieren actualización de software.' },
+  { id: 'proj', icon: Projector, resource: 'Proyectores', amount: '6 compartidos + 1 fijo', status: 'Disponible', toneName: 'emerald', note: 'El proyector fijo está en el salón de usos múltiples.' },
+  { id: 'audio', icon: Speaker, resource: 'Bocinas', amount: 'Para diferentes actividades', status: 'Buen estado', toneName: 'emerald', note: 'De uso institucional.' },
+  { id: 'net', icon: Network, resource: 'Red de Internet', amount: 'Cobertura de red del MINED', status: 'Funcional con restricciones', toneName: 'amber', note: 'Restringe plataformas que no son educativas.' },
+  { id: 'support', icon: Wrench, resource: 'Soporte técnico', amount: 'Sin técnico permanente', status: 'Externo / interno', toneName: 'rose', note: 'Red: MINED. Equipos: docentes de informática.' },
+];
+
+const INVENTORY_COLUMNS = [
+  {
+    key: 'resource',
+    label: 'Recurso',
+    className: 'w-[24%]',
+    render: (r) => {
+      const RIcon = r.icon;
+      return (
+        <span className="flex items-center gap-2.5 font-semibold text-ink">
+          <RIcon size={17} className="shrink-0 text-plum" /> {r.resource}
+        </span>
+      );
+    },
+  },
+  { key: 'amount', label: 'Disponibilidad', className: 'w-[24%]' },
+  { key: 'status', label: 'Estado', className: 'w-[20%]', render: (r) => <Badge toneName={r.toneName}>{r.status}</Badge> },
+  { key: 'note', label: 'Observación' },
 ];
 
 /* ---------------------------------------------------------------------
-   Utilidades de presentación
+   Paneles
    --------------------------------------------------------------------- */
 
-function BlockTitle({ eyebrow, title, icon: Icon }) {
+function DayScheduleBar() {
+  // Jornada institucional 7:00–17:00 (10 h) · tutoría de práctica 7:00–12:00
+  const hours = Array.from({ length: 11 }, (_, i) => 7 + i);
   return (
-    <div className="flex items-start gap-3">
-      {Icon && (
-        <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum">
-          <Icon size={19} />
-        </span>
-      )}
-      <div>
-        {eyebrow && <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">{eyebrow}</p>}
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold text-ink leading-tight">{title}</h3>
+    <div>
+      <div className="relative h-12 rounded-2xl border border-line bg-silk overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          whileInView={{ width: '100%' }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-y-0 left-0 bg-lilac"
+        />
+        <motion.div
+          initial={{ width: 0 }}
+          whileInView={{ width: '50%' }}
+          viewport={{ once: true }}
+          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-y-1.5 left-1.5 rounded-xl bg-plum flex items-center px-3"
+        >
+          <span className="text-[11px] sm:text-xs font-semibold text-white whitespace-nowrap">Tutoría de práctica · 7:00 – 12:00</span>
+        </motion.div>
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] sm:text-[11px] text-muted tabular-nums">
+        {hours.map((h) => (
+          <span key={h} className={cx(h % 2 === 0 && 'hidden sm:inline')}>
+            {h > 12 ? h - 12 : h}
+            {h < 12 ? 'a' : 'p'}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
-function IconTile({ icon: Icon, title, text }) {
+function InstitutionPanel() {
   return (
-    <motion.div variants={fadeUp} className="rounded-2xl border border-line bg-white shadow-paper p-4 sm:p-5 h-full">
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-lilac border border-lilac-line text-plum">
-        <Icon size={18} />
-      </span>
-      <p className="mt-3 font-semibold text-ink leading-snug">{title}</p>
-      <p className="mt-1 text-sm text-body leading-relaxed">{text}</p>
-    </motion.div>
-  );
-}
-
-/* ---------------------------------------------------------------------
-   4.a Institución
-   --------------------------------------------------------------------- */
-
-function InstitucionPanel() {
-  return (
-    <div className="space-y-10">
-      <PlumBand>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div className="lg:col-span-8 space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-[#E5D5B5] font-semibold">Institución de práctica</p>
-            <h3 className="font-serif text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-on-plum">Instituto Nacional Dr. Francisco Martínez Suárez</h3>
-            <p className="text-sm sm:text-base text-on-plum-muted leading-relaxed max-w-2xl">
-              Centro educativo público de Chalatenango que atiende la modalidad presencial y la modalidad flexible de bachillerato, esta última dirigida
-              principalmente a personas adultas que trabajan entre semana.
-            </p>
-          </div>
-          <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-            {[
-              { v: '2', l: 'Modalidades' },
-              { v: 'Sáb', l: 'Jornada flexible' },
-              { v: '75%', l: 'Mayores de 22 años' },
-              { v: '11', l: 'Estudiantes encuestados' },
-            ].map((s) => (
-              <div key={s.l} className="rounded-2xl border border-white/20 p-3 sm:p-4">
-                <span className="block font-serif text-3xl font-semibold text-on-plum leading-none">{s.v}</span>
-                <span className="block mt-1.5 text-xs text-on-plum-muted">{s.l}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </PlumBand>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassCard hover={false}>
-          <BlockTitle eyebrow="Gestión administrativa y académica" title="Organización institucional" icon={Landmark} />
-          <p className="mt-4 text-sm sm:text-[15px] text-body leading-relaxed">
-            La gestión de la modalidad flexible se centra en matrículas, registros y organización académica, bajo el liderazgo del Director General,
-            que dirige ambas modalidades.
-          </p>
-          <ol className="mt-6 space-y-2">
-            {ORG_CHART.map((o, i) => {
-              const Icon = o.icon;
-              return (
-                <li key={o.role}>
-                  <div className="flex items-start gap-3 rounded-2xl border border-line bg-ivory p-4">
-                    <span
-                      className={cx(
-                        'shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border',
-                        i === 0 ? 'bg-plum border-plum text-white' : 'bg-white border-lilac-line text-plum'
-                      )}
-                    >
-                      <Icon size={18} />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-ink leading-snug">{o.role}</p>
-                      <p className="text-sm text-body leading-relaxed mt-0.5">{o.detail}</p>
-                    </div>
-                  </div>
-                  {i < ORG_CHART.length - 1 && (
-                    <div className="flex justify-center py-1 text-line-strong" aria-hidden="true">
-                      <ArrowDown size={16} />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </GlassCard>
-
-        <GlassCard hover={false}>
-          <BlockTitle eyebrow="Horarios y funcionamiento" title="Una semana en la modalidad flexible" icon={Clock} />
-          <p className="mt-4 text-sm sm:text-[15px] text-body leading-relaxed">
-            La modalidad combina el estudio autónomo entre semana con jornadas semipresenciales los sábados de 7:00 a.m. a 5:00 p.m.
-          </p>
-          <div className="mt-6 space-y-3">
-            {WEEK.map((w) => {
-              const Icon = w.icon;
-              return (
-                <div key={w.title} className="flex items-start gap-4 rounded-2xl border border-line bg-white p-4 shadow-paper">
-                  <span className="shrink-0 w-20 rounded-xl bg-sand border border-sand-line py-2 text-center text-xs font-bold text-bronze-dark">{w.day}</span>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-2 font-semibold text-ink">
-                      <Icon size={16} className="text-plum" /> {w.title}
-                    </p>
-                    <p className="text-sm text-body leading-relaxed mt-0.5">{w.text}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-6">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-2">Jornada sabatina</p>
-            <div className="relative h-10 rounded-xl bg-silk border border-line overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: '100%' }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-y-0 left-0 bg-lilac"
-              />
-              <div className="absolute inset-0 flex items-center justify-between px-3 text-xs font-semibold text-plum">
-                <span>7:00 a.m.</span>
-                <span className="hidden sm:inline">Jornada de 10 horas</span>
-                <span>5:00 p.m.</span>
-              </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <GlassCard hover={false} className="lg:col-span-7 space-y-6">
+          <CardTitle icon={School} title="Instituto Nacional Dr. Francisco Martínez Suárez" subtitle="Chalatenango · Modalidades Flexibles de Educación" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-line bg-ivory p-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold">Gestión</p>
+              <p className="mt-1.5 text-sm text-body leading-relaxed">
+                Gestión administrativa centrada en <strong className="text-ink">matrículas y registros</strong>, bajo la conducción del Director General.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-line bg-ivory p-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold">Coordinación de la modalidad</p>
+              <p className="mt-1.5 text-sm text-body leading-relaxed">
+                Coordinador de Modalidad Flexible: <strong className="text-ink">Gerardo</strong> (Lcdo. Gerardo Escobar Mejía).
+              </p>
             </div>
           </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Clock size={16} className="text-plum" /> Sábados de 7:00 a.m. a 5:00 p.m.
+              </p>
+              <Badge toneName="amber">Jornada semipresencial</Badge>
+            </div>
+            <DayScheduleBar />
+          </div>
+
+          <div className="flex items-start gap-3 rounded-2xl border border-sage-line bg-sage-soft p-4">
+            <MessageCircle size={18} className="shrink-0 mt-0.5 text-sage" />
+            <p className="text-sm text-body leading-relaxed">
+              <strong className="text-ink">Apoyo entre semana por WhatsApp:</strong> ante cualquier consulta, los estudiantes se comunican con el docente mediante los
+              grupos de WhatsApp.
+            </p>
+          </div>
+        </GlassCard>
+
+        <GlassCard hover={false} className="lg:col-span-5">
+          <CardTitle icon={Users} title="Estructura de acompañamiento" subtitle="Roles que intervienen en la práctica" toneName="amber" />
+          <motion.ol initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="mt-6 relative space-y-3">
+            <span className="absolute left-5 top-5 bottom-5 w-px bg-line-strong" aria-hidden="true" />
+            {ORG_CHART.map((o, i) => {
+              const OIcon = o.icon;
+              const isMe = i === ORG_CHART.length - 1;
+              return (
+                <motion.li key={o.role} variants={fadeUp} className="relative flex items-start gap-3">
+                  <span
+                    className={cx(
+                      'relative z-10 shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border',
+                      isMe ? 'bg-plum border-plum text-white' : 'bg-white border-lilac-line text-plum'
+                    )}
+                  >
+                    <OIcon size={17} />
+                  </span>
+                  <div className={cx('flex-1 rounded-2xl border px-4 py-3', isMe ? 'border-plum bg-lilac' : 'border-line bg-white')}>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">{o.role}</p>
+                    <p className="text-sm font-semibold text-ink leading-snug mt-0.5">{o.name}</p>
+                  </div>
+                </motion.li>
+              );
+            })}
+          </motion.ol>
         </GlassCard>
       </div>
 
-      <section className="space-y-5">
-        <BlockTitle eyebrow="Infraestructura física y servicios" title="Espacios y apoyos para el estudiantado" icon={Building2} />
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: '-40px' }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {SERVICES.map((s) => (
-            <IconTile key={s.title} {...s} />
-          ))}
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold mb-4">Instalaciones y apoyos institucionales</p>
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-40px' }}
+          variants={stagger}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+        >
+          {FACILITIES.map((f) => {
+            const FIcon = f.icon;
+            return (
+              <motion.div key={f.label} variants={fadeUp} className="rounded-2xl border border-line bg-white shadow-paper p-4 hover:border-line-strong hover:shadow-paper-lg transition-all">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-lilac border border-lilac-line text-plum">
+                  <FIcon size={18} />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-ink leading-snug">{f.label}</p>
+                <p className="mt-1 text-xs text-muted leading-snug">{f.text}</p>
+              </motion.div>
+            );
+          })}
         </motion.div>
-      </section>
+      </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------------------
-   4.b Grupo asignado
-   --------------------------------------------------------------------- */
-
-function GrupoPanel() {
+function GroupPanel() {
   return (
-    <div className="space-y-10">
-      <div className="flex flex-wrap gap-2">
-        <Badge toneName="violet" icon={GraduationCap}>
-          1.° Año de Bachillerato
-        </Badge>
-        <Badge toneName="amber" icon={FileText}>
-          Ciencias Naturales y Tecnología
-        </Badge>
-        <Badge toneName="slate">Modalidad flexible / a distancia</Badge>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <GlassCard hover={false}>
+          <CardTitle icon={Users} title="Edad" subtitle="N = 11 estudiantes encuestados" />
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <DonutChart data={AGE} centerValue="81.8%" centerLabel="19 años o más" size={180} thickness={24} />
+            <ChartLegend data={AGE.map((d) => ({ ...d, percent: d.value, value: Math.round((d.value / 100) * 11) }))} />
+          </div>
+        </GlassCard>
+        <GlassCard hover={false}>
+          <CardTitle icon={UsersRound} title="Sexo" subtitle="Distribución del grupo" toneName="rose" />
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <DonutChart data={SEX} centerValue="11" centerLabel="estudiantes" size={180} thickness={24} />
+            <ChartLegend data={SEX.map((d) => ({ ...d, percent: d.value, value: Math.round((d.value / 100) * 11) }))} />
+          </div>
+        </GlassCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <GlassCard hover={false} className="lg:col-span-7">
-          <BlockTitle eyebrow="Demografía y madurez" title="Un grupo mayoritariamente adulto" icon={Users} />
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-            <DonutChart
-              data={AGE.map((a, i) => ({ label: a.label, value: a.value, color: CHART_COLORS[i] }))}
-              centerValue="81.8%"
-              centerLabel="19 años o más"
-            />
-            <ChartLegend data={AGE.map((a, i) => ({ ...a, color: CHART_COLORS[i] }))} />
+        <GlassCard hover={false} className="lg:col-span-5 space-y-5">
+          <CardTitle icon={Flame} title="Motivación" subtitle="Superación personal como motor" toneName="amber" />
+          <div className="flex items-end gap-3">
+            <span className="font-serif text-6xl font-semibold text-bronze-dark leading-none">90.9%</span>
+            <span className="text-sm text-muted pb-1.5">del grupo se siente motivado</span>
           </div>
-          <p className="mt-6 text-sm sm:text-[15px] text-body leading-relaxed">
-            En el grupo diagnosticado, el 81.8% (9 estudiantes) tiene 19 años o más y el 18.2% (2) tiene entre 17 y 18 años. El desfase escolar responde a
-            estudios interrumpidos, pero viene acompañado de un alto grado de madurez y responsabilidad adulta.
-          </p>
-        </GlassCard>
-
-        <div className="lg:col-span-5 space-y-6">
-          <GlassCard hover={false}>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-4">Población de la modalidad flexible</p>
-            <div className="flex h-12 w-full overflow-hidden rounded-2xl border border-line">
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: '75%' }}
-                viewport={{ once: true }}
-                transition={{ duration: 1 }}
-                className="flex items-center justify-center bg-plum text-sm font-semibold text-white"
-              >
-                75%
-              </motion.div>
-              <div className="flex-1 flex items-center justify-center bg-lilac text-sm font-semibold text-plum">25%</div>
-            </div>
-            <div className="mt-2 flex justify-between text-xs text-muted">
-              <span>Mayores de 22 años</span>
-              <span>Menores de 22 años</span>
-            </div>
-          </GlassCard>
-          <GlassCard hover={false}>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-4">Equilibrio de género</p>
-            <div className="space-y-4">
-              <ProgressBar label="Hombres (6)" value={54.5} toneName="violet" />
-              <ProgressBar label="Mujeres (5)" value={45.5} toneName="amber" />
-            </div>
-          </GlassCard>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassCard hover={false}>
-          <BlockTitle eyebrow="Contexto sociofamiliar y motivación" title="Estudiar mientras se trabaja" icon={Flame} />
-          <div className="mt-5 space-y-4 text-sm sm:text-[15px] text-body leading-relaxed">
-            <p>La mayoría del grupo trabaja durante la semana y varias estudiantes son madres de familia.</p>
-            <p>Aun así, el 90.9% presenta alta motivación, impulsada por el deseo de superación personal, mejores oportunidades laborales y continuar estudios universitarios.</p>
-          </div>
-          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-sand-line bg-sand p-4">
-            <span className="font-serif text-5xl font-semibold text-bronze-dark leading-none">90.9%</span>
-            <span className="text-sm text-body leading-snug">se siente motivado o bastante motivado para continuar sus estudios</span>
-          </div>
-        </GlassCard>
-
-        <GlassCard hover={false}>
-          <BlockTitle eyebrow="Asistencia y permanencia" title="Factores que la dificultan" icon={TriangleAlert} />
-          <div className="mt-5 space-y-3">
-            {ATTENDANCE.map((a) => {
-              const Icon = a.icon;
-              return (
-                <div key={a.title} className="flex items-start gap-3 rounded-2xl border border-wine-line bg-wine-soft p-4">
-                  <Icon size={18} className="shrink-0 mt-0.5 text-wine" />
-                  <div>
-                    <p className="font-semibold text-ink">{a.title}</p>
-                    <p className="text-sm text-body leading-relaxed mt-0.5">{a.text}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </GlassCard>
-      </div>
-
-      <GlassCard hover={false}>
-        <BlockTitle eyebrow="Perfil académico" title="Cómo aprende el grupo" icon={BookOpen} />
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-4 space-y-4">
-            <div className="rounded-2xl border border-line bg-ivory p-5">
-              <span className="block font-serif text-5xl font-semibold text-plum leading-none">81.9%</span>
-              <span className="block mt-2 text-sm text-body">realiza sus tareas de forma autónoma siempre o casi siempre</span>
-            </div>
-            <div className="rounded-2xl border border-line bg-ivory p-5">
-              <p className="flex items-center gap-2 font-semibold text-ink">
-                <PlayCircle size={17} className="text-plum" /> Aula invertida
-              </p>
-              <p className="mt-1 text-sm text-body leading-relaxed">El docente tutor reporta que este modelo ha funcionado bastante bien en la modalidad.</p>
-            </div>
-          </div>
-          <div className="lg:col-span-5">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-4 flex items-center gap-2">
-              <Gamepad2 size={14} /> Actividades que más les ayudan
+          <ProgressBar value={90.9} toneName="amber" label="Motivado o bastante motivado" />
+          <div className="rounded-2xl border border-line bg-ivory p-4 space-y-2.5">
+            <p className="flex items-start gap-2.5 text-sm text-body leading-relaxed">
+              <Briefcase size={16} className="shrink-0 mt-0.5 text-plum" /> La mayoría trabaja durante la semana.
             </p>
-            <HorizontalBars data={PREFERENCES} max={100} />
+            <p className="flex items-start gap-2.5 text-sm text-body leading-relaxed">
+              <Baby size={16} className="shrink-0 mt-0.5 text-plum" /> Algunas estudiantes son madres de familia.
+            </p>
           </div>
-          <div className="lg:col-span-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-4">Necesidades prioritarias</p>
-            <ul className="space-y-2.5">
-              {['Refuerzo en lectura y escritura', 'Uso básico de la computadora', 'Manejo de plataformas para tareas', 'Participación constante de todo el grupo'].map((n) => (
-                <li key={n} className="flex gap-2.5 rounded-xl border border-sand-line bg-sand px-3 py-2.5 text-sm text-body">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45 bg-bronze" />
-                  {n}
-                </li>
-              ))}
-            </ul>
+        </GlassCard>
+
+        <GlassCard hover={false} className="lg:col-span-7 space-y-5">
+          <CardTitle icon={PlayCircle} title="Preferencias de aprendizaje" subtitle="Actividades que les ayudan a entender mejor (selección múltiple)" />
+          <HorizontalBars data={PREFERENCES} max={100} />
+          <div className="flex items-start gap-3 rounded-2xl border border-sand-line bg-sand p-4">
+            <Repeat size={18} className="shrink-0 mt-0.5 text-bronze" />
+            <p className="text-sm text-body leading-relaxed">
+              <strong className="text-ink">Aula invertida:</strong> estrategia que el docente tutor identifica como efectiva en esta modalidad, junto con proyectos que
+              involucran la tecnología.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge toneName="violet" icon={PlayCircle}>
+              Videos
+            </Badge>
+            <Badge toneName="amber" icon={UsersRound}>
+              Trabajo en equipo
+            </Badge>
+            <Badge toneName="emerald" icon={Gamepad2}>
+              Juegos
+            </Badge>
+            <Badge toneName="slate" icon={Repeat}>
+              Aula invertida
+            </Badge>
+          </div>
+        </GlassCard>
+      </div>
+
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold mb-4">Barreras para la asistencia y la permanencia</p>
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {BARRIERS.map((b) => {
+            const BIcon = b.icon;
+            return (
+              <motion.div key={b.title} variants={fadeUp} className="rounded-3xl border border-wine-line bg-wine-soft p-5">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-wine-line text-wine">
+                  <BIcon size={18} />
+                </span>
+                <p className="mt-3 font-semibold text-ink">{b.title}</p>
+                <p className="mt-1 text-sm text-body leading-relaxed">{b.text}</p>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
+
+      <GlassCard hover={false} className="bg-ivory">
+        <div className="flex flex-col md:flex-row md:items-center gap-5">
+          <span className="shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-plum text-white">
+            <Lightbulb size={22} />
+          </span>
+          <div className="flex-1">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">Necesidad identificada</p>
+            <p className="mt-1 font-serif text-xl sm:text-2xl text-ink leading-snug">Refuerzo en lectoescritura y en el uso de la computadora.</p>
           </div>
         </div>
       </GlassCard>
@@ -406,149 +378,147 @@ function GrupoPanel() {
   );
 }
 
-/* ---------------------------------------------------------------------
-   4.c Recursos tecnológicos
-   --------------------------------------------------------------------- */
-
-function RecursosPanel() {
+function TicPanel() {
   return (
-    <div className="space-y-10">
-      <section className="space-y-5">
-        <BlockTitle eyebrow="En la institución" title="Inventario tecnológico disponible" icon={Building2} />
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: '-40px' }} variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {INVENTORY.map((it) => {
-            const Icon = it.icon;
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">Inventario institucional</p>
+          <Badge toneName="slate">Fuente: entrevista al coordinador</Badge>
+        </div>
+        <DataTable
+          columns={INVENTORY_COLUMNS}
+          rows={INVENTORY}
+          rowKey="id"
+          minWidth={760}
+          renderCard={(r) => {
+            const RIcon = r.icon;
             return (
-              <motion.div key={it.label} variants={fadeUp} className="rounded-3xl border border-line bg-white shadow-paper p-5 flex flex-col">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-lilac border border-lilac-line text-plum">
-                    <Icon size={18} />
+              <div className="rounded-2xl border border-line bg-white shadow-paper p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex items-center gap-2.5 font-semibold text-ink text-sm">
+                    <RIcon size={17} className="shrink-0 text-plum" /> {r.resource}
                   </span>
-                  <span className="font-serif text-3xl font-semibold text-bronze leading-none">{it.value}</span>
+                  <Badge toneName={r.toneName}>{r.status}</Badge>
                 </div>
-                <p className="mt-4 font-semibold text-ink">{it.label}</p>
-                <p className="mt-1 text-sm text-body leading-relaxed">{it.detail}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </section>
-
-      <section className="space-y-5">
-        <BlockTitle eyebrow="En el hogar del estudiante" title="Equipamiento y conectividad" icon={House} />
-
-        {/* Móvil: tarjetas */}
-        <div className="grid grid-cols-1 gap-4 md:hidden">
-          {HOME.map((h) => {
-            const Icon = h.icon;
-            return (
-              <div key={h.id} className="rounded-2xl border border-line bg-white shadow-paper p-4">
-                <div className="flex items-start gap-3">
-                  <Icon size={18} className="shrink-0 mt-0.5 text-plum" />
-                  <p className="flex-1 text-sm font-medium text-ink leading-snug">{h.indicator}</p>
-                  <span className="font-serif text-2xl font-semibold text-plum leading-none">{h.value}</span>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-xs text-muted">
-                  <span>{h.count} estudiantes</span>
-                  <span>{h.source}</span>
-                </div>
+                <p className="mt-2 text-sm font-medium text-ink">{r.amount}</p>
+                <p className="mt-1 text-sm text-muted leading-relaxed">{r.note}</p>
               </div>
             );
-          })}
-        </div>
-
-        {/* Escritorio: tabla */}
-        <div className="hidden md:block overflow-x-auto rounded-3xl border border-line bg-white shadow-paper">
-          <table className="w-full min-w-[680px] text-sm">
-            <thead>
-              <tr className="bg-silk text-left text-[11px] uppercase tracking-[0.16em] text-muted">
-                <th className="px-5 py-3.5 font-semibold">Indicador</th>
-                <th className="px-5 py-3.5 font-semibold w-56">Proporción</th>
-                <th className="px-5 py-3.5 font-semibold w-28 text-right">Frecuencia</th>
-                <th className="px-5 py-3.5 font-semibold w-36">Fuente</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HOME.map((h) => {
-                const Icon = h.icon;
-                return (
-                  <tr key={h.id} className="border-t border-line hover:bg-ivory transition-colors">
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-2.5 font-medium text-ink">
-                        <Icon size={16} className="text-plum" /> {h.indicator}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <ProgressBar value={parseFloat(h.value)} toneName={h.tone} showValue />
-                    </td>
-                    <td className="px-5 py-4 text-right tabular-nums text-body">{h.count}</td>
-                    <td className="px-5 py-4 text-muted">{h.source}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="rounded-3xl border border-sage-line bg-sage-soft p-6">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-sage font-bold">En la institución</p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-ink">El acceso está mayormente cubierto</p>
-          <p className="mt-2 text-sm text-body leading-relaxed">Laboratorio, computadoras, proyectores y red del MINED permiten trabajar con tecnología durante la jornada sabatina.</p>
-        </div>
-        <div className="rounded-3xl border border-wine-line bg-wine-soft p-6">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-wine font-bold">En el hogar</p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-ink">La brecha está en la conexión y el dispositivo</p>
-          <p className="mt-2 text-sm text-body leading-relaxed">27.3% no tiene una conexión estable en casa y 27.3% estudia solo desde el teléfono: los recursos deben ser ligeros y móviles.</p>
-        </div>
+          }}
+        />
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <GlassCard hover={false}>
+          <CardTitle icon={Monitor} title="Dispositivo en casa" subtitle="El que más utilizan para sus trabajos en la semana" />
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <DonutChart data={DEVICE} centerValue="27.3%" centerLabel="depende del smartphone" size={180} thickness={24} />
+            <ChartLegend data={DEVICE.map((d) => ({ ...d, percent: d.value, value: Math.round((d.value / 100) * 11) }))} />
+          </div>
+        </GlassCard>
+
+        <GlassCard hover={false} className="space-y-6">
+          <CardTitle icon={Wifi} title="Conexión a Internet en casa" subtitle="Acceso desde el hogar" toneName="indigo" />
+          <div>
+            <div className="flex h-10 w-full rounded-2xl overflow-hidden border border-line">
+              {CONNECTIVITY.map((c, i) => (
+                <motion.div
+                  key={c.label}
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${c.value}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1, delay: i * 0.15, ease: [0.22, 1, 0.36, 1] }}
+                  className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+                  style={{ background: c.color }}
+                  title={`${c.label}: ${c.value}%`}
+                >
+                  {c.value >= 15 ? `${c.value}%` : ''}
+                </motion.div>
+              ))}
+            </div>
+            <ul className="mt-4 space-y-2">
+              {CONNECTIVITY.map((c) => (
+                <li key={c.label} className="flex items-center gap-3 text-sm">
+                  <span className="h-3 w-3 shrink-0 rounded-[4px]" style={{ background: c.color }} />
+                  <span className="flex-1 text-body">{c.label}</span>
+                  <span className="tabular-nums font-semibold text-ink">{c.value}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-line bg-ivory p-4">
+              <Smartphone size={18} className="text-bronze" />
+              <p className="mt-2 font-serif text-3xl font-semibold text-ink leading-none">27.3%</p>
+              <p className="mt-1 text-xs text-muted">usa principalmente el smartphone</p>
+            </div>
+            <div className="rounded-2xl border border-line bg-ivory p-4">
+              <Wifi size={18} className="text-wine" />
+              <p className="mt-2 font-serif text-3xl font-semibold text-ink leading-none">27.3%</p>
+              <p className="mt-1 text-xs text-muted">señal inestable o sin acceso</p>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <EditorialQuote author="Lectura del contexto tecnológico">
+        La institución cuenta con equipo y red; la brecha se concentra en el hogar y en las competencias de uso de la computadora.
+      </EditorialQuote>
     </div>
   );
 }
+
+const PANELS = { institucion: InstitutionPanel, grupo: GroupPanel, tic: TicPanel };
 
 /* ---------------------------------------------------------------------
    Vista principal
    --------------------------------------------------------------------- */
 
 export default function Contexto_educativo() {
-  const [tab, setTab] = useState('institucion');
+  const [active, setActive] = useState('institucion');
+  const Panel = PANELS[active];
+  const activeIndex = TABS.findIndex((t) => t.id === active);
+  const next = TABS[(activeIndex + 1) % TABS.length];
 
   return (
     <PageShell>
       <SectionHeader
-        eyebrow="Apartado 4 · Contexto"
+        eyebrow="Contexto"
         icon={MapPin}
         title="Contexto"
         highlight="educativo"
-        description="La institución, el grupo asignado y los recursos tecnológicos con los que se desarrolla la práctica docente en la modalidad flexible."
+        description="Panorama de la institución, del grupo de Primer Año de Bachillerato de Ciencias Naturales y de los recursos tecnológicos disponibles, según el diagnóstico que realicé."
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {KEY_FACTS.map((f) => {
-          const Icon = f.icon;
-          return (
-            <div key={f.label} className="flex items-start gap-3 rounded-2xl border border-line bg-white shadow-paper px-4 py-3.5">
-              <Icon size={17} className="shrink-0 mt-0.5 text-plum" />
-              <div className="min-w-0">
-                <span className="block text-[10px] uppercase tracking-[0.18em] text-muted font-semibold">{f.label}</span>
-                <span className="block text-sm font-medium text-ink leading-snug mt-0.5">{f.value}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {KPIS.map((k) => (
+          <motion.div key={k.label} variants={fadeUp}>
+            <StatCard {...k} className="h-full" />
+          </motion.div>
+        ))}
+      </motion.div>
 
-      <div className="space-y-8">
-        <TabBar tabs={TABS} active={tab} onChange={setTab} layoutId="contexto-apartados" />
+      <section className="space-y-6">
+        <TabBar tabs={TABS} active={active} onChange={setActive} layoutId="contexto-tabs" />
         <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.35 }}>
-            {tab === 'institucion' && <InstitucionPanel />}
-            {tab === 'grupo' && <GrupoPanel />}
-            {tab === 'recursos' && <RecursosPanel />}
+          <motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+            <Panel />
           </motion.div>
         </AnimatePresence>
-      </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setActive(next.id);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="group min-h-[44px] inline-flex items-center gap-2 rounded-2xl border border-lilac-line bg-white px-4 text-sm font-semibold text-plum hover:bg-lilac transition-colors"
+          >
+            Siguiente: {next.label} <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      </section>
     </PageShell>
   );
 }

@@ -2,432 +2,375 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarRange,
-  ListChecks,
-  Layers,
-  Clock,
-  UserRound,
   Table2,
-  ChartGantt,
-  Link2,
+  GanttChart,
+  ListChecks,
+  Hourglass,
   Flag,
-  PenLine,
-  Search as SearchIcon,
-  Eye,
-  ChartPie,
-  Lightbulb,
-  Layout,
-  CloudUpload,
-  MessageCircle,
+  CalendarDays,
+  PencilRuler,
   Presentation,
   NotebookPen,
   CircleCheck,
-  CalendarDays,
+  Clock,
+  Layers,
+  ArrowRight,
+  CalendarCheck,
+  Milestone,
 } from 'lucide-react';
-import { PageShell, GlassCard, SectionHeader, Badge, SearchInput, FilterChips, SegmentedControl, StatCard, EmptyState, Divider } from './ui/Primitives';
+import {
+  PageShell,
+  GlassCard,
+  SectionHeader,
+  CardTitle,
+  Badge,
+  SearchInput,
+  FilterChips,
+  SegmentedControl,
+  StatCard,
+  EmptyState,
+  DataTable,
+  Tooltip,
+  ProgressBar,
+} from './ui/Primitives';
 import { cx, normalize, fadeUp, stagger } from './ui/tokens';
 import { CRONOGRAMA, CRONOGRAMA_STAGES, formatDate } from '../data/diagnostico';
+import { JORNADAS, PRACTICE_SUMMARY } from '../data/practica';
 
 /* =====================================================================
-   PLANEACIÓN Y ORGANIZACIÓN · Cronograma, Gantt y plan semanal
+   PLANEACIÓN Y ORGANIZACIÓN · Cronograma (tabla / Gantt) y plan semanal
    ===================================================================== */
 
-const RESPONSIBLE = 'Stephanie Hernández';
-const RANGE_START = '2026-08-12';
-const RANGE_END = '2026-09-20';
-
 const STAGE_STYLE = {
-  antes: { bar: 'bg-plum', soft: 'bg-lilac border-lilac-line text-plum', tone: 'violet', icon: PenLine },
-  durante: { bar: 'bg-bronze-dark', soft: 'bg-sand border-sand-line text-bronze-dark', tone: 'amber', icon: Eye },
-  despues: { bar: 'bg-sage', soft: 'bg-sage-soft border-sage-line text-sage', tone: 'emerald', icon: ChartPie },
+  antes: { toneName: 'violet', bar: 'bg-plum', soft: 'bg-lilac', text: 'text-plum' },
+  durante: { toneName: 'amber', bar: 'bg-bronze', soft: 'bg-sand', text: 'text-bronze-dark' },
+  despues: { toneName: 'emerald', bar: 'bg-sage', soft: 'bg-sage-soft', text: 'text-sage' },
 };
 
-const MILESTONES = [
-  { date: '2026-08-22', label: 'Observación' },
-  { date: '2026-09-12', label: 'Trabajo de campo' },
-  { date: '2026-09-20', label: 'Entrega' },
-];
-
-const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-
+const DAY_MS = 86400000;
 const toUTC = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
   return Date.UTC(y, m - 1, d);
 };
-const DAY = 86400000;
-const dayIndex = (iso) => Math.round((toUTC(iso) - toUTC(RANGE_START)) / DAY);
-const TOTAL_DAYS = dayIndex(RANGE_END) + 1;
-const shortDate = (iso) => {
-  const [, m, d] = iso.split('-').map(Number);
-  return `${d} ${MONTHS[m - 1]}`;
-};
-const isoFromIndex = (i) => new Date(toUTC(RANGE_START) + i * DAY).toISOString().slice(0, 10);
-const WEEK_TICKS = Array.from({ length: Math.ceil(TOTAL_DAYS / 7) }, (_, k) => ({ index: k * 7, label: shortDate(isoFromIndex(k * 7)) }));
+const RANGE_START = toUTC(CRONOGRAMA[0].start);
+const RANGE_END = Math.max(...CRONOGRAMA.map((a) => toUTC(a.end)));
+const TOTAL_DAYS = Math.round((RANGE_END - RANGE_START) / DAY_MS) + 1;
+const DAYS = Array.from({ length: TOTAL_DAYS }, (_, i) => {
+  const date = new Date(RANGE_START + i * DAY_MS);
+  return { i, day: date.getUTCDate(), month: date.getUTCMonth(), weekday: date.getUTCDay() };
+});
+const WEEKDAY_INITIAL = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MONTH_SPANS = DAYS.reduce((acc, d) => {
+  const last = acc[acc.length - 1];
+  if (last && last.month === d.month) last.count += 1;
+  else acc.push({ month: d.month, count: 1 });
+  return acc;
+}, []);
+const DAY_W = 30;
+
+const MILESTONES = [
+  { id: 7, label: 'Visita y observación' },
+  { id: 8, label: 'Aplicación de instrumentos' },
+  { id: 18, label: 'Entrega del informe' },
+];
+
+const STAGE_DAYS = Object.keys(CRONOGRAMA_STAGES).map((k) => ({
+  id: k,
+  ...CRONOGRAMA_STAGES[k],
+  count: CRONOGRAMA.filter((a) => a.stage === k).length,
+  days: CRONOGRAMA.filter((a) => a.stage === k).reduce((acc, a) => acc + a.days, 0),
+}));
 
 const WEEK_PLAN = [
   {
-    id: 'lun',
-    day: 'Lunes',
-    phase: 'Análisis',
-    icon: SearchIcon,
-    focus: 'Revisión del módulo y del diagnóstico',
-    tasks: ['Revisar la lección del módulo que corresponde a la semana.', 'Definir objetivos de aprendizaje alineados con el diagnóstico.', 'Identificar qué adaptaciones necesita el grupo.'],
-    product: 'Objetivos y adaptaciones de la semana',
-  },
-  {
-    id: 'mar',
-    day: 'Martes',
-    phase: 'Diseño instruccional',
-    icon: Layout,
-    focus: 'Secuencia Antes · Durante · Después',
-    tasks: ['Diseñar la secuencia del aula invertida.', 'Seleccionar videos, lecturas y prácticas.', 'Planificar la evaluación formativa.'],
-    product: 'Plan de clase en borrador',
-  },
-  {
-    id: 'mie',
-    day: 'Miércoles',
-    phase: 'Producción',
-    icon: PenLine,
-    focus: 'Elaboración de recursos ligeros',
-    tasks: ['Elaborar cápsulas, guías e infografías Mobile-First.', 'Preparar versiones PDF descargables.', 'Validar el plan con el docente tutor.'],
-    product: 'Recursos listos para publicar',
-  },
-  {
-    id: 'jue',
-    day: 'Jueves',
-    phase: 'Publicación',
-    icon: CloudUpload,
-    focus: 'Classroom / Moodle',
-    tasks: ['Publicar los materiales del “Antes” en Classroom o Moodle.', 'Avisar en el grupo de WhatsApp con instrucciones claras.', 'Fijar fechas de entrega realistas.'],
-    product: 'Materiales publicados y comunicados',
-  },
-  {
-    id: 'vie',
-    day: 'Viernes',
-    phase: 'Seguimiento',
-    icon: MessageCircle,
-    focus: 'Dudas y preparación de la tutoría',
-    tasks: ['Resolver dudas por WhatsApp.', 'Revisar el avance de las actividades exaula.', 'Preparar materiales de práctica o laboratorio.'],
-    product: 'Tutoría sabatina preparada',
+    id: 'lv',
+    days: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
+    short: ['L', 'M', 'M', 'J', 'V'],
+    title: 'Diseño de materiales',
+    icon: PencilRuler,
+    toneName: 'violet',
+    time: 'Trabajo autónomo',
+    tasks: [
+      'Diseño de los materiales didácticos para la siguiente tutoría.',
+      'Elaboración de los planes de sesión con indicadores de logro, momentos y criterios de evaluación.',
+      'Preparación de presentaciones, guías y recursos visuales.',
+    ],
   },
   {
     id: 'sab',
-    day: 'Sábado',
-    phase: 'Tutoría presencial',
+    days: ['Sábado'],
+    short: ['S'],
+    title: 'Tutoría presencial',
     icon: Presentation,
-    focus: 'Jornada de 7:00 a.m. a 5:00 p.m.',
-    tasks: ['Inicio: recuperar lo trabajado en la semana.', 'Desarrollo: prácticas, experimentos y trabajo en equipo.', 'Cierre: autoevaluación y preguntas de comprobación.'],
-    product: 'Evidencias de la tutoría',
+    toneName: 'amber',
+    time: '7:00 a.m. – 12:00 m.d.',
+    tasks: [
+      'Preparación del equipo, materiales y recursos antes de iniciar.',
+      'Apoyo al docente tutor o conducción de la clase.',
+      'Acompañamiento a los estudiantes en las actividades.',
+      'Firma del consolidado de asistencia con el coordinador y el docente.',
+    ],
   },
   {
     id: 'dom',
-    day: 'Domingo',
-    phase: 'Reflexión',
+    days: ['Domingo'],
+    short: ['D'],
+    title: 'Reflexión',
     icon: NotebookPen,
-    focus: 'Diario reflexivo',
-    tasks: ['Registrar actividades, retos y soluciones.', 'Anotar aprendizajes y reflexión personal.', 'Organizar las evidencias de la semana.'],
-    product: 'Entrada del diario reflexivo',
+    toneName: 'emerald',
+    time: 'Cierre semanal',
+    tasks: ['Registro de la jornada en el diario reflexivo.', 'Análisis de retos, soluciones y aprendizajes.', 'Ajustes para la planificación de la semana siguiente.'],
+  },
+];
+
+const TABLE_COLUMNS = [
+  { key: 'id', label: 'N.°', className: 'w-14', render: (r) => <span className="font-serif text-lg font-semibold text-bronze">{String(r.id).padStart(2, '0')}</span> },
+  { key: 'name', label: 'Actividad', render: (r) => <span className="font-medium text-ink">{r.name}</span> },
+  {
+    key: 'stage',
+    label: 'Etapa',
+    className: 'w-28',
+    render: (r) => <Badge toneName={STAGE_STYLE[r.stage].toneName}>{CRONOGRAMA_STAGES[r.stage].label}</Badge>,
+  },
+  { key: 'start', label: 'Inicio', className: 'w-28 tabular-nums', render: (r) => formatDate(r.start) },
+  { key: 'end', label: 'Fin', className: 'w-28 tabular-nums', render: (r) => formatDate(r.end) },
+  {
+    key: 'days',
+    label: 'Duración',
+    className: 'w-24',
+    render: (r) => (
+      <span className="tabular-nums font-semibold text-ink">
+        {r.days} {r.days === 1 ? 'día' : 'días'}
+      </span>
+    ),
+  },
+  {
+    key: 'deps',
+    label: 'Precedida por',
+    className: 'w-32',
+    render: (r) => (r.deps.length ? <span className="text-muted tabular-nums">{r.deps.map((d) => `#${d}`).join(', ')}</span> : <span className="text-muted">Inicio</span>),
   },
 ];
 
 /* ---------------------------------------------------------------------
-   Vista tabla
+   Sub-componentes
    --------------------------------------------------------------------- */
 
-function DepsLabel({ deps }) {
-  if (!deps.length) return <span className="text-muted">—</span>;
+function ActivityCard({ a }) {
+  const s = STAGE_STYLE[a.stage];
   return (
-    <span className="inline-flex flex-wrap gap-1">
-      {deps.map((d) => (
-        <span key={d} className="rounded-md border border-line bg-ivory px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-plum">
-          {d}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function ScheduleTable({ rows }) {
-  return (
-    <div>
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {rows.map((a) => {
-          const st = STAGE_STYLE[a.stage];
-          return (
-            <div key={a.id} className="rounded-2xl border border-line bg-white shadow-paper p-4">
-              <div className="flex items-start gap-3">
-                <span className="font-serif text-2xl font-semibold text-bronze leading-none tabular-nums">{String(a.id).padStart(2, '0')}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink leading-snug">{a.name}</p>
-                  <span className={cx('mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', st.soft)}>{CRONOGRAMA_STAGES[a.stage].label}</span>
-                </div>
-              </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <dt className="text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">Inicio</dt>
-                  <dd className="text-ink tabular-nums">{formatDate(a.start)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">Fin</dt>
-                  <dd className="text-ink tabular-nums">{formatDate(a.end)}</dd>
-                </div>
-                <div>
-                  <dt className="text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">Duración</dt>
-                  <dd className="text-ink">
-                    {a.days} {a.days === 1 ? 'día' : 'días'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[10px] uppercase tracking-[0.16em] text-muted font-semibold">Depende de</dt>
-                  <dd>
-                    <DepsLabel deps={a.deps} />
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          );
-        })}
+    <div className="relative rounded-2xl border border-line bg-white shadow-paper p-4 pl-5 overflow-hidden">
+      <span className={cx('absolute left-0 inset-y-0 w-1.5', s.bar)} />
+      <div className="flex items-start justify-between gap-3">
+        <span className="font-serif text-2xl font-semibold text-bronze leading-none">{String(a.id).padStart(2, '0')}</span>
+        <Badge toneName={s.toneName}>{CRONOGRAMA_STAGES[a.stage].label}</Badge>
       </div>
-
-      <div className="hidden md:block overflow-x-auto rounded-3xl border border-line bg-white shadow-paper">
-        <table className="w-full min-w-[880px] text-sm">
-          <thead>
-            <tr className="bg-silk text-left text-[11px] uppercase tracking-[0.14em] text-muted">
-              <th className="px-4 py-3.5 font-semibold w-14">N.°</th>
-              <th className="px-4 py-3.5 font-semibold">Actividad</th>
-              <th className="px-4 py-3.5 font-semibold w-28">Etapa</th>
-              <th className="px-4 py-3.5 font-semibold w-28">Inicio</th>
-              <th className="px-4 py-3.5 font-semibold w-28">Fin</th>
-              <th className="px-4 py-3.5 font-semibold w-24">Duración</th>
-              <th className="px-4 py-3.5 font-semibold w-32">Dependencias</th>
-              <th className="px-4 py-3.5 font-semibold w-44">Responsable</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((a) => {
-              const st = STAGE_STYLE[a.stage];
-              return (
-                <tr key={a.id} className="border-t border-line hover:bg-ivory transition-colors">
-                  <td className="px-4 py-3.5 font-serif text-xl font-semibold text-bronze tabular-nums">{String(a.id).padStart(2, '0')}</td>
-                  <td className="px-4 py-3.5 font-medium text-ink">{a.name}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={cx('inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', st.soft)}>{CRONOGRAMA_STAGES[a.stage].label}</span>
-                  </td>
-                  <td className="px-4 py-3.5 tabular-nums text-body">{formatDate(a.start)}</td>
-                  <td className="px-4 py-3.5 tabular-nums text-body">{formatDate(a.end)}</td>
-                  <td className="px-4 py-3.5 text-body">
-                    {a.days} {a.days === 1 ? 'día' : 'días'}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <DepsLabel deps={a.deps} />
-                  </td>
-                  <td className="px-4 py-3.5 text-body">{RESPONSIBLE}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <p className="mt-2 text-sm font-semibold text-ink leading-snug">{a.name}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted tabular-nums">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays size={13} /> {a.start === a.end ? formatDate(a.start) : `${formatDate(a.start)} – ${formatDate(a.end)}`}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Hourglass size={13} /> {a.days} {a.days === 1 ? 'día' : 'días'}
+        </span>
       </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------------------
-   Vista Gantt
-   --------------------------------------------------------------------- */
-
-function GanttChart({ rows }) {
-  const [hovered, setHovered] = useState(null);
-  const active = rows.find((r) => r.id === hovered) || CRONOGRAMA.find((r) => r.id === hovered);
-  const related = new Set(active ? [...active.deps, ...CRONOGRAMA.filter((r) => r.deps.includes(active.id)).map((r) => r.id)] : []);
-  const pct = (i) => `${(i / TOTAL_DAYS) * 100}%`;
-
+function GanttView({ rows }) {
+  const width = TOTAL_DAYS * DAY_W;
   return (
-    <div>
-      {/* Móvil: línea de tiempo vertical */}
-      <ol className="md:hidden relative space-y-3 pl-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-line-strong">
-        {rows.map((a) => {
-          const st = STAGE_STYLE[a.stage];
-          return (
-            <li key={a.id} className="relative">
-              <span className={cx('absolute -left-[21px] top-4 h-3 w-3 rounded-full border-2 border-white', st.bar)} />
-              <div className="rounded-2xl border border-line bg-white shadow-paper p-4">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="font-semibold text-plum tabular-nums">
-                    {formatDate(a.start)}
-                    {a.end !== a.start && ` → ${formatDate(a.end)}`}
-                  </span>
-                  <span className="text-muted">
-                    {a.days} {a.days === 1 ? 'día' : 'días'}
-                  </span>
-                </div>
-                <p className="mt-1.5 font-medium text-ink leading-snug">
-                  <span className="text-bronze font-serif font-semibold mr-1.5">{a.id}.</span>
-                  {a.name}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-
-      {/* Escritorio: diagrama de Gantt */}
-      <div className="hidden md:block overflow-x-auto rounded-3xl border border-line bg-white shadow-paper">
-        <div className="min-w-[980px]">
-          <div className="grid grid-cols-[300px_1fr] border-b border-line bg-silk">
-            <div className="px-4 py-3 text-[11px] uppercase tracking-[0.14em] text-muted font-semibold">Actividad</div>
-            <div className="relative h-11">
-              {WEEK_TICKS.map((t) => (
-                <span key={t.index} className="absolute top-0 h-full border-l border-line pl-1.5 pt-3 text-[11px] font-semibold text-muted" style={{ left: pct(t.index) }}>
-                  {t.label}
-                </span>
-              ))}
-            </div>
+    <div className="rounded-3xl border border-line bg-white shadow-paper overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="grid" style={{ gridTemplateColumns: `minmax(190px, 240px) ${width}px` }}>
+          {/* Cabecera: meses */}
+          <div className="sticky left-0 z-20 bg-silk border-b border-r border-line px-4 py-2 text-[11px] uppercase tracking-[0.16em] text-muted font-semibold flex items-end">
+            Actividad
           </div>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-0 grid grid-cols-[300px_1fr]">
-              <div />
-              <div className="relative">
-                {WEEK_TICKS.map((t) => (
-                  <span key={t.index} className="absolute inset-y-0 border-l border-line/70" style={{ left: pct(t.index) }} />
-                ))}
-                {MILESTONES.map((m) => (
-                  <span key={m.date} className="absolute inset-y-0 border-l-2 border-dashed border-bronze/50" style={{ left: pct(dayIndex(m.date) + 0.5) }} />
-                ))}
-              </div>
-            </div>
-            {rows.map((a) => {
-              const st = STAGE_STYLE[a.stage];
-              const s = dayIndex(a.start);
-              const e = dayIndex(a.end);
-              const isActive = hovered === a.id;
-              const isRelated = related.has(a.id);
-              return (
+          <div className="bg-silk border-b border-line">
+            <div className="flex">
+              {MONTH_SPANS.map((m) => (
                 <div
-                  key={a.id}
-                  className={cx(
-                    'relative grid grid-cols-[300px_1fr] border-b border-line/70 last:border-b-0 transition-colors',
-                    isActive ? 'bg-lilac/60' : isRelated ? 'bg-sand/70' : 'hover:bg-ivory'
-                  )}
-                  onMouseEnter={() => setHovered(a.id)}
-                  onMouseLeave={() => setHovered(null)}
+                  key={m.month}
+                  className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-plum border-r border-line last:border-r-0"
+                  style={{ width: m.count * DAY_W }}
                 >
-                  <div className="px-4 py-2.5 flex items-center gap-2.5 min-w-0">
-                    <span className="font-serif text-lg font-semibold text-bronze tabular-nums w-6 shrink-0">{a.id}</span>
-                    <span className="text-[13px] text-ink leading-snug truncate" title={a.name}>
-                      {a.name}
-                    </span>
-                  </div>
-                  <div className="relative h-11">
-                    <motion.div
-                      initial={{ scaleX: 0 }}
-                      whileInView={{ scaleX: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.6, delay: a.id * 0.03, ease: [0.22, 1, 0.36, 1] }}
-                      className={cx('absolute top-2.5 h-6 rounded-lg origin-left flex items-center px-2', st.bar, isActive && 'ring-2 ring-offset-1 ring-plum')}
-                      style={{ left: pct(s), width: `max(${pct(e - s + 1)}, 1.6rem)` }}
-                    >
-                      <span className="text-[10px] font-bold text-white tabular-nums">{a.days}d</span>
-                    </motion.div>
-                  </div>
+                  {MONTH_NAMES[m.month]} 2026
                 </div>
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-ivory px-4 py-3 text-xs text-body">
-            <div className="flex flex-wrap gap-4">
-              {Object.entries(CRONOGRAMA_STAGES).map(([k, v]) => (
-                <span key={k} className="inline-flex items-center gap-1.5">
-                  <span className={cx('h-2.5 w-2.5 rounded-sm', STAGE_STYLE[k].bar)} /> {v.label}
-                </span>
               ))}
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 border-l-2 border-dashed border-bronze/60" /> Hito
-              </span>
             </div>
-            <span className="text-muted">
-              {active ? (
-                <>
-                  <span className="font-semibold text-plum">Actividad {active.id}</span> · depende de {active.deps.length ? active.deps.join(', ') : 'ninguna'}
-                </>
-              ) : (
-                'Pasa el cursor sobre una actividad para ver sus dependencias'
-              )}
-            </span>
+            <div className="flex border-t border-line">
+              {DAYS.map((d) => (
+                <div
+                  key={d.i}
+                  className={cx('flex flex-col items-center justify-center py-1 text-[10px] leading-tight tabular-nums', d.weekday === 6 ? 'bg-sand text-bronze-dark font-bold' : 'text-muted')}
+                  style={{ width: DAY_W }}
+                >
+                  <span>{WEEKDAY_INITIAL[d.weekday]}</span>
+                  <span className="text-[11px]">{d.day}</span>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Filas */}
+          {rows.map((a) => {
+            const s = STAGE_STYLE[a.stage];
+            const offset = Math.round((toUTC(a.start) - RANGE_START) / DAY_MS);
+            const span = Math.round((toUTC(a.end) - toUTC(a.start)) / DAY_MS) + 1;
+            const milestone = MILESTONES.find((m) => m.id === a.id);
+            return (
+              <div key={a.id} className="contents group">
+                <div className="sticky left-0 z-10 bg-white group-hover:bg-ivory border-b border-r border-line px-4 py-2.5 flex items-center gap-2.5 min-h-[48px] transition-colors">
+                  <span className={cx('shrink-0 h-2.5 w-2.5 rounded-full', s.bar)} />
+                  <span className="text-[11px] font-bold text-bronze tabular-nums">{String(a.id).padStart(2, '0')}</span>
+                  <span className="text-xs text-ink leading-snug line-clamp-2">{a.name}</span>
+                </div>
+                <div className="relative border-b border-line group-hover:bg-ivory transition-colors">
+                  <div className="absolute inset-0 flex pointer-events-none" aria-hidden="true">
+                    {DAYS.map((d) => (
+                      <span key={d.i} className={cx('h-full border-r border-line/60', d.weekday === 6 && 'bg-sand/50')} style={{ width: DAY_W }} />
+                    ))}
+                  </div>
+                  <div className="absolute top-1/2 -translate-y-1/2" style={{ left: offset * DAY_W + 3, width: span * DAY_W - 6 }}>
+                    <Tooltip
+                      content={`${a.name} · ${a.start === a.end ? formatDate(a.start) : `${formatDate(a.start)} – ${formatDate(a.end)}`} · ${a.days} ${a.days === 1 ? 'día' : 'días'}`}
+                      className="w-full"
+                    >
+                      <motion.span
+                        initial={{ scaleX: 0 }}
+                        whileInView={{ scaleX: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: a.id * 0.03, ease: [0.22, 1, 0.36, 1] }}
+                        tabIndex={0}
+                        className={cx('flex w-full h-7 origin-left items-center justify-center rounded-lg text-[10px] font-bold text-white shadow-sm outline-none', s.bar)}
+                      >
+                        {span > 1 ? `${a.days}d` : ''}
+                      </motion.span>
+                    </Tooltip>
+                  </div>
+                  {milestone && (
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2 inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-sand-line bg-white px-2 py-0.5 text-[10px] font-semibold text-bronze-dark shadow-sm"
+                      style={offset + span > TOTAL_DAYS - 6 ? { right: (TOTAL_DAYS - offset) * DAY_W + 6 } : { left: (offset + span) * DAY_W + 6 }}
+                    >
+                      <Flag size={10} /> {milestone.label}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line bg-ivory px-4 sm:px-5 py-3 text-xs text-muted">
+        {Object.keys(CRONOGRAMA_STAGES).map((k) => (
+          <span key={k} className="inline-flex items-center gap-2">
+            <span className={cx('h-2.5 w-5 rounded-full', STAGE_STYLE[k].bar)} /> {CRONOGRAMA_STAGES[k].label}: {CRONOGRAMA_STAGES[k].description}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-2">
+          <span className="h-3 w-3 rounded-[3px] bg-sand border border-sand-line" /> Sábado (jornada presencial)
+        </span>
+        <span className="sm:ml-auto inline-flex items-center gap-1.5 md:hidden">
+          <ArrowRight size={13} /> Desliza para ver todo el periodo
+        </span>
+      </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------------------
-   Plan semanal (5.b)
-   --------------------------------------------------------------------- */
-
 function WeeklyPlan() {
-  const [day, setDay] = useState('sab');
-  const current = WEEK_PLAN.find((d) => d.id === day);
-  const Icon = current.icon;
+  const [active, setActive] = useState('sab');
+  const current = WEEK_PLAN.find((w) => w.id === active);
+  const CIcon = current.icon;
+  const dayButtons = WEEK_PLAN.flatMap((w) => w.days.map((d, i) => ({ day: d, short: w.short[i], group: w })));
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-        {WEEK_PLAN.map((d) => {
-          const DIcon = d.icon;
-          const active = d.id === day;
-          const saturday = d.id === 'sab';
+    <GlassCard hover={false} className="space-y-6">
+      <CardTitle icon={CalendarCheck} title="Plan de acción semanal" subtitle="Organización de mi semana durante la práctica" toneName="amber" />
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="tablist" aria-label="Días de la semana">
+        {dayButtons.map((b) => {
+          const isActive = b.group.id === active;
           return (
             <button
-              key={d.id}
+              key={b.day}
               type="button"
-              onClick={() => setDay(d.id)}
-              aria-pressed={active}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActive(b.group.id)}
               className={cx(
-                'rounded-2xl border p-3 text-left transition-all',
-                active ? 'border-plum bg-plum text-white shadow-sm' : saturday ? 'border-sand-line bg-sand text-ink hover:border-bronze' : 'border-line bg-white text-ink shadow-paper hover:border-line-strong'
+                'min-h-[64px] rounded-2xl border flex flex-col items-center justify-center gap-1 transition-all duration-300',
+                isActive ? 'border-plum bg-plum text-white shadow-paper-lg' : 'border-line bg-white text-body hover:border-line-strong'
               )}
             >
-              <DIcon size={16} className={active ? 'text-white' : 'text-plum'} />
-              <span className="block mt-2 text-sm font-semibold">{d.day}</span>
-              <span className={cx('block text-[11px] leading-tight', active ? 'text-on-plum-muted' : 'text-muted')}>{d.phase}</span>
+              <span className="font-serif text-xl font-semibold leading-none">{b.short}</span>
+              <span className={cx('hidden sm:block text-[10px] uppercase tracking-[0.12em]', isActive ? 'text-on-plum-muted' : 'text-muted')}>{b.day.slice(0, 3)}</span>
             </button>
           );
         })}
       </div>
       <AnimatePresence mode="wait">
-        <motion.div key={current.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
-          <GlassCard hover={false} padded={false} className="overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-12">
-              <div className="md:col-span-4 bg-silk border-b md:border-b-0 md:border-r border-line p-6">
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-line text-plum">
-                  <Icon size={22} />
-                </span>
-                <p className="mt-4 text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">{current.day}</p>
-                <p className="font-serif text-3xl font-semibold text-ink leading-tight">{current.phase}</p>
-                <p className="mt-2 text-sm text-body">{current.focus}</p>
-              </div>
-              <div className="md:col-span-8 p-6 space-y-5">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-muted font-semibold mb-3">Tareas</p>
-                  <ul className="space-y-2.5">
-                    {current.tasks.map((t) => (
-                      <li key={t} className="flex gap-2.5 text-[15px] text-body leading-relaxed">
-                        <CircleCheck size={17} className="shrink-0 mt-0.5 text-sage" />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-2xl border border-sand-line bg-sand px-4 py-3">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">Producto del día</span>
-                  <p className="text-sm font-semibold text-ink mt-0.5">{current.product}</p>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
+        <motion.div
+          key={current.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+          className="grid grid-cols-1 md:grid-cols-12 gap-5 rounded-3xl border border-line bg-ivory p-5 sm:p-6"
+        >
+          <div className="md:col-span-5 space-y-3">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-plum text-white">
+              <CIcon size={22} />
+            </span>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-bronze font-semibold">{current.days.length > 1 ? 'Lunes a viernes' : current.days[0]}</p>
+            <h4 className="font-serif text-2xl sm:text-3xl font-semibold text-ink leading-tight">{current.title}</h4>
+            <Badge toneName={current.toneName} icon={Clock}>
+              {current.time}
+            </Badge>
+          </div>
+          <ul className="md:col-span-7 space-y-2.5">
+            {current.tasks.map((t) => (
+              <li key={t} className="flex gap-2.5 rounded-2xl border border-line bg-white px-4 py-3 text-sm text-body leading-relaxed">
+                <CircleCheck size={17} className="shrink-0 mt-0.5 text-sage" /> {t}
+              </li>
+            ))}
+          </ul>
         </motion.div>
       </AnimatePresence>
-    </div>
+    </GlassCard>
+  );
+}
+
+function ExecutedJourneys() {
+  return (
+    <GlassCard hover={false} className="space-y-6">
+      <CardTitle
+        icon={Milestone}
+        title="Jornadas ejecutadas"
+        subtitle="Registro de la firma de asistencia del practicante"
+        toneName="emerald"
+        right={<Badge toneName="emerald">{PRACTICE_SUMMARY.horas} h</Badge>}
+      />
+      <ProgressBar label={`${PRACTICE_SUMMARY.jornadas} de ${PRACTICE_SUMMARY.jornadas} jornadas completadas`} value={100} toneName="emerald" />
+      <motion.ol
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true }}
+        variants={stagger}
+        className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5"
+      >
+        {JORNADAS.map((j) => (
+          <motion.li key={j.n} variants={fadeUp} className="rounded-2xl border border-line bg-white p-3 text-center shadow-paper">
+            <span className="block font-serif text-2xl font-semibold text-bronze leading-none">J{j.n}</span>
+            <span className="block mt-1.5 text-xs font-semibold text-ink tabular-nums">{j.date}</span>
+            <span className="block mt-0.5 text-[11px] text-muted">5 h · 7:00 – 12:00</span>
+          </motion.li>
+        ))}
+      </motion.ol>
+    </GlassCard>
   );
 }
 
@@ -436,144 +379,90 @@ function WeeklyPlan() {
    --------------------------------------------------------------------- */
 
 export default function Planeacion_y_organizacion() {
-  const [stage, setStage] = useState('all');
-  const [view, setView] = useState('gantt');
+  const [stage, setStage] = useState('todas');
   const [query, setQuery] = useState('');
-  const q = normalize(query.trim());
+  const [view, setView] = useState('gantt');
 
-  const rows = useMemo(
-    () => CRONOGRAMA.filter((a) => (stage === 'all' || a.stage === stage) && (!q || normalize(`${a.id} ${a.name}`).includes(q))),
-    [stage, q]
-  );
+  const rows = useMemo(() => {
+    const q = normalize(query.trim());
+    return CRONOGRAMA.filter((a) => (stage === 'todas' || a.stage === stage) && (!q || normalize(`${a.id} ${a.name} ${CRONOGRAMA_STAGES[a.stage].label}`).includes(q)));
+  }, [stage, query]);
 
-  const stageOptions = [
-    { id: 'all', label: 'Todas', icon: Layers, count: CRONOGRAMA.length },
-    ...Object.entries(CRONOGRAMA_STAGES).map(([id, v]) => ({ id, label: v.label, icon: STAGE_STYLE[id].icon, count: CRONOGRAMA.filter((a) => a.stage === id).length })),
+  const chipOptions = [
+    { id: 'todas', label: 'Todas', icon: Layers, count: CRONOGRAMA.length },
+    ...Object.keys(CRONOGRAMA_STAGES).map((k) => ({ id: k, label: CRONOGRAMA_STAGES[k].label, count: CRONOGRAMA.filter((a) => a.stage === k).length })),
   ];
 
   return (
     <PageShell>
       <SectionHeader
-        eyebrow="Apartado 5 · Planeación"
+        eyebrow="Planeación"
         icon={CalendarRange}
         title="Planeación y"
         highlight="organización"
-        description="Cronograma de las 18 actividades del diagnóstico, su diagrama de Gantt y el plan de acción semanal de la práctica docente."
+        description="Cronograma de las 18 actividades del diagnóstico, organizado en tres etapas, y la forma en que distribuí mi semana durante la práctica."
       />
 
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard icon={ListChecks} label="Actividades" value="18" hint="Cronograma oficial del diagnóstico" toneName="violet" />
-        <StatCard icon={Layers} label="Etapas" value="3" hint="Antes, durante y después" toneName="amber" />
-        <StatCard icon={Clock} label="Duración" value={`${TOTAL_DAYS} días`} hint="Del 12/08/2026 al 20/09/2026" toneName="emerald" />
-        <StatCard icon={UserRound} label="Responsable" value="S. H." hint={RESPONSIBLE} toneName="indigo" />
-      </div>
-
-      {/* Etapas */}
-      <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Object.entries(CRONOGRAMA_STAGES).map(([id, v]) => {
-          const st = STAGE_STYLE[id];
-          const Icon = st.icon;
-          const acts = CRONOGRAMA.filter((a) => a.stage === id);
-          return (
-            <motion.div key={id} variants={fadeUp} className="rounded-3xl border border-line bg-white shadow-paper p-5">
-              <div className="flex items-center justify-between">
-                <span className={cx('inline-flex h-10 w-10 items-center justify-center rounded-xl border', st.soft)}>
-                  <Icon size={18} />
-                </span>
-                <span className="font-serif text-3xl font-semibold text-ink">{acts.length}</span>
-              </div>
-              <p className="mt-3 font-semibold text-ink">{v.label}</p>
-              <p className="text-sm text-muted">{v.description}</p>
-              <p className="mt-3 text-xs font-semibold text-plum tabular-nums">
-                {formatDate(acts[0].start)} → {formatDate(acts[acts.length - 1].end)}
-              </p>
-            </motion.div>
-          );
-        })}
+      <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <motion.div variants={fadeUp}>
+          <StatCard icon={ListChecks} label="Actividades" value={String(CRONOGRAMA.length)} hint="Cronograma del diagnóstico" className="h-full" />
+        </motion.div>
+        {STAGE_DAYS.map((s) => (
+          <motion.div key={s.id} variants={fadeUp}>
+            <StatCard
+              icon={s.id === 'antes' ? PencilRuler : s.id === 'durante' ? Presentation : NotebookPen}
+              label={`Etapa ${s.label}`}
+              value={`${s.count}`}
+              hint={`${s.description} · ${s.days} días`}
+              toneName={STAGE_STYLE[s.id].toneName}
+              className="h-full"
+            />
+          </motion.div>
+        ))}
       </motion.div>
 
-      <Divider />
-
-      {/* Cronograma */}
       <section className="space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">5.a Cronograma de actividades</p>
-            <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Ruta del diagnóstico</h3>
-            <p className="text-sm text-muted mt-1">
-              Mostrando <span className="font-semibold text-plum tabular-nums">{rows.length}</span> de 18 actividades
-            </p>
-          </div>
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between">
+          <FilterChips options={chipOptions} value={stage} onChange={setStage} />
           <SegmentedControl
             ariaLabel="Tipo de vista"
             value={view}
             onChange={setView}
             options={[
-              { id: 'gantt', label: 'Diagrama de Gantt', icon: ChartGantt },
-              { id: 'tabla', label: 'Tabla editorial', icon: Table2 },
+              { id: 'gantt', label: 'Gantt', icon: GanttChart },
+              { id: 'tabla', label: 'Tabla', icon: Table2 },
             ]}
+            className="self-start"
           />
         </div>
-        <div className="flex flex-col lg:flex-row gap-3 lg:items-center justify-between">
-          <FilterChips options={stageOptions} value={stage} onChange={setStage} />
-          <SearchInput value={query} onChange={setQuery} placeholder="Buscar actividad..." className="lg:max-w-xs" />
-        </div>
+        <SearchInput value={query} onChange={setQuery} placeholder="Buscar actividad (p. ej. cuestionario, FODA, entrevista)…" />
 
-        {rows.length === 0 ? (
-          <EmptyState title="Sin actividades" description="Ninguna actividad coincide con la etapa o la búsqueda." />
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div key={view} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
-              {view === 'gantt' ? <GanttChart rows={rows} /> : <ScheduleTable rows={rows} />}
-            </motion.div>
-          </AnimatePresence>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {MILESTONES.map((m) => (
-            <div key={m.date} className="flex items-center gap-3 rounded-2xl border border-sand-line bg-sand px-4 py-3">
-              <Flag size={17} className="shrink-0 text-bronze" />
-              <div>
-                <p className="text-sm font-semibold text-ink">{m.label}</p>
-                <p className="text-xs text-body tabular-nums">{formatDate(m.date)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="flex items-start gap-2 text-xs text-muted">
-          <Link2 size={14} className="shrink-0 mt-0.5" />
-          La columna de dependencias indica qué actividades deben concluir antes de iniciar cada una. La duración corresponde a la registrada en el cronograma del informe.
-        </p>
-      </section>
-
-      {/* Plan semanal */}
-      <section className="space-y-6">
-        <div className="flex items-start gap-3">
-          <span className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-lilac border border-lilac-line text-plum">
-            <CalendarDays size={19} />
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+          <span>
+            Mostrando <strong className="text-ink">{rows.length}</strong> de {CRONOGRAMA.length} actividades · {formatDate(CRONOGRAMA[0].start)} –{' '}
+            {formatDate(CRONOGRAMA[CRONOGRAMA.length - 1].end)}
           </span>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-bronze font-semibold">5.b Plan de acción semanal</p>
-            <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-ink">Una semana de práctica docente</h3>
-            <p className="text-sm text-muted mt-1">Del diseño instruccional entre semana a la tutoría presencial del sábado y la reflexión del domingo.</p>
-          </div>
-        </div>
-        <WeeklyPlan />
-        <div className="flex flex-wrap gap-2">
-          <Badge toneName="violet" icon={CloudUpload}>
-            Publicación en Classroom / Moodle
-          </Badge>
-          <Badge toneName="amber" icon={Presentation}>
-            Tutoría sábados 7:00 a.m. – 5:00 p.m.
-          </Badge>
-          <Badge toneName="emerald" icon={Lightbulb}>
-            Aula invertida
-          </Badge>
-          <Badge toneName="slate" icon={NotebookPen}>
-            Diario reflexivo semanal
+          <Badge toneName="emerald" icon={CircleCheck}>
+            Cronograma completado
           </Badge>
         </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div key={`${view}-${stage}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+            {rows.length === 0 ? (
+              <EmptyState title="Sin actividades" description="No hay actividades que coincidan con la búsqueda o el filtro." />
+            ) : view === 'gantt' ? (
+              <GanttView rows={rows} />
+            ) : (
+              <DataTable columns={TABLE_COLUMNS} rows={rows} rowKey="id" minWidth={820} renderCard={(a) => <ActivityCard a={a} />} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </section>
+
+      <WeeklyPlan />
+
+      <ExecutedJourneys />
     </PageShell>
   );
 }
